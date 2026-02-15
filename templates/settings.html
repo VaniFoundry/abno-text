@@ -17,7 +17,7 @@
   </div>
 
   <div class="form-group">
-    <label>Font Size (px)</label>
+    <label>Base Font Size (px)</label>
     <input type="number" name="fontSize" value="{{fontSize}}">
   </div>
 
@@ -36,6 +36,13 @@
     <input type="number" name="typingSpeed" value="{{typingSpeed}}">
   </div>
 
+  <hr>
+
+  <div class="form-group">
+    <label>Random Mode (instead of sequence)</label>
+    <input type="checkbox" name="randomMode" {{checked randomMode}}>
+  </div>
+
   <div class="form-group">
     <label>Random Position</label>
     <input type="checkbox" name="randomPosition" {{checked randomPosition}}>
@@ -49,6 +56,11 @@
   <div class="form-group">
     <label>Maximum Angle (degrees)</label>
     <input type="number" name="maxAngle" value="{{maxAngle}}">
+  </div>
+
+  <div class="form-group">
+    <label>Auto Scale Long Text to Fit Screen</label>
+    <input type="checkbox" name="autoScaleLongText" {{checked autoScaleLongText}}>
   </div>
 
   <button type="submit">Save</button>

@@ -1,4 +1,5 @@
 let intervalId = null;
+let sequenceIndex = 0;
 
 /* ---------------------------- */
 /* Register Settings             */
@@ -13,18 +14,20 @@ Hooks.once("init", () => {
     default: {
       messages: [
         "The air trembles...",
-        "Something watches.",
-        "Fate tightens its grip."
+        "Something watches from beyond.",
+        "Fate tightens its grip upon reality."
       ],
-      duration: 4000,
+      duration: 5000,
       frequency: 0,
       fontSize: 64,
       color: "#ff3333",
       fontFamily: "serif",
       typingSpeed: 40,
+      randomMode: false,
       randomPosition: true,
       randomAngle: true,
-      maxAngle: 25
+      maxAngle: 25,
+      autoScaleLongText: true
     }
   });
 
@@ -39,12 +42,31 @@ Hooks.once("init", () => {
 
 
 /* ---------------------------- */
-/* Ready Hook                    */
+/* Ready                         */
 /* ---------------------------- */
 
 Hooks.once("ready", () => {
   startAutoMessages();
 });
+
+
+/* ---------------------------- */
+/* Message Selection Logic       */
+/* ---------------------------- */
+
+function getNextMessage() {
+
+  const config = game.settings.get("abno-text", "config");
+  if (!config.messages.length) return null;
+
+  if (config.randomMode) {
+    return config.messages[Math.floor(Math.random() * config.messages.length)];
+  }
+
+  const msg = config.messages[sequenceIndex];
+  sequenceIndex = (sequenceIndex + 1) % config.messages.length;
+  return msg;
+}
 
 
 /* ---------------------------- */
@@ -61,17 +83,24 @@ export function showAbnoMessage(text) {
   overlay.append(textElement);
   $("body").append(overlay);
 
+  /* Base styling */
   textElement.css({
     "font-size": config.fontSize + "px",
     "color": config.color,
     "font-family": config.fontFamily,
-    "position": "absolute"
+    "position": "absolute",
+    "max-width": "90vw",
+    "max-height": "90vh",
+    "overflow-wrap": "break-word",
+    "word-break": "break-word",
+    "white-space": "normal",
+    "text-align": "center"
   });
 
-  /* Random Position */
+  /* Position */
   if (config.randomPosition) {
-    const x = Math.random() * (window.innerWidth * 0.8);
-    const y = Math.random() * (window.innerHeight * 0.8);
+    const x = Math.random() * (window.innerWidth * 0.6);
+    const y = Math.random() * (window.innerHeight * 0.6);
     textElement.css({
       left: x + "px",
       top: y + "px"
@@ -84,7 +113,7 @@ export function showAbnoMessage(text) {
     });
   }
 
-  /* Random Angle */
+  /* Rotation */
   if (config.randomAngle) {
     const angle = (Math.random() * config.maxAngle * 2) - config.maxAngle;
     textElement.css({
@@ -92,7 +121,7 @@ export function showAbnoMessage(text) {
     });
   }
 
-  /* Typewriter Effect */
+  /* Typewriter */
   let i = 0;
   const typingInterval = setInterval(() => {
     textElement.text(text.slice(0, i));
@@ -100,10 +129,15 @@ export function showAbnoMessage(text) {
 
     if (i > text.length) {
       clearInterval(typingInterval);
+
+      /* Auto scale long text AFTER full render */
+      if (config.autoScaleLongText) {
+        autoScaleText(textElement);
+      }
     }
+
   }, config.typingSpeed);
 
-  /* Remove After Duration */
   setTimeout(() => {
     overlay.fadeOut(500, () => overlay.remove());
   }, config.duration);
@@ -111,15 +145,31 @@ export function showAbnoMessage(text) {
 
 
 /* ---------------------------- */
-/* Random Message                */
+/* Auto Scaling Logic            */
 /* ---------------------------- */
 
-function playRandomMessage() {
-  const config = game.settings.get("abno-text", "config");
-  if (!config.messages.length) return;
+function autoScaleText(element) {
 
-  const random = config.messages[Math.floor(Math.random() * config.messages.length)];
-  showAbnoMessage(random);
+  let fontSize = parseInt(element.css("font-size"));
+
+  while (
+    (element[0].scrollWidth > window.innerWidth * 0.9 ||
+     element[0].scrollHeight > window.innerHeight * 0.9)
+     && fontSize > 12
+  ) {
+    fontSize -= 2;
+    element.css("font-size", fontSize + "px");
+  }
+}
+
+
+/* ---------------------------- */
+/* Play Next                     */
+/* ---------------------------- */
+
+function playNextMessage() {
+  const msg = getNextMessage();
+  if (msg) showAbnoMessage(msg);
 }
 
 
@@ -128,13 +178,14 @@ function playRandomMessage() {
 /* ---------------------------- */
 
 function startAutoMessages() {
+
   const config = game.settings.get("abno-text", "config");
 
   if (intervalId) clearInterval(intervalId);
 
   if (config.frequency > 0) {
     intervalId = setInterval(() => {
-      playRandomMessage();
+      playNextMessage();
     }, config.frequency * 1000);
   }
 }
@@ -171,9 +222,12 @@ class AbnoTextConfig extends FormApplication {
 
     data.randomPosition = !!formData.randomPosition;
     data.randomAngle = !!formData.randomAngle;
+    data.randomMode = !!formData.randomMode;
+    data.autoScaleLongText = !!formData.autoScaleLongText;
 
     await game.settings.set("abno-text", "config", data);
 
+    sequenceIndex = 0;
     startAutoMessages();
   }
 }
