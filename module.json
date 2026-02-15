@@ -1,0 +1,13 @@
+{
+  "id": "abno-text",
+  "title": "Abno Text",
+  "version": "1.0.0",
+  "compatibility": {
+    "minimum": "13",
+    "verified": "13"
+  },
+  "description": "<p>Module that lets you display text on screen like in abnormality fights in PM games</p>",
+  "flags": {
+    "canUpload": true
+  }
+}
