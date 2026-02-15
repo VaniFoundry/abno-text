@@ -1,10 +1,11 @@
 let intervalId = null;
 
 /* ---------------------------- */
-/*  Register Settings           */
+/* Register Settings             */
 /* ---------------------------- */
 
 Hooks.once("init", () => {
+
   game.settings.register("abno-text", "config", {
     scope: "world",
     config: false,
@@ -12,28 +13,33 @@ Hooks.once("init", () => {
     default: {
       messages: [
         "The air trembles...",
-        "Something approaches.",
-        "Fate turns its gaze upon you."
+        "Something watches.",
+        "Fate tightens its grip."
       ],
-      duration: 3000,
-      frequency: 0, // 0 = disabled
+      duration: 4000,
+      frequency: 0,
       fontSize: 64,
       color: "#ff3333",
-      fontFamily: "serif"
+      fontFamily: "serif",
+      typingSpeed: 40,
+      randomPosition: true,
+      randomAngle: true,
+      maxAngle: 25
     }
   });
 
   game.settings.registerMenu("abno-text", "configMenu", {
-    name: "Dramatic Messages Settings",
-    label: "Configure Messages",
-    type: DramaticMessagesConfig,
+    name: "Abno-Text Configuration",
+    label: "Open Configuration",
+    type: AbnoTextConfig,
     restricted: true
   });
+
 });
 
 
 /* ---------------------------- */
-/*  Ready Hook                  */
+/* Ready Hook                    */
 /* ---------------------------- */
 
 Hooks.once("ready", () => {
@@ -42,26 +48,62 @@ Hooks.once("ready", () => {
 
 
 /* ---------------------------- */
-/*  Overlay Function            */
+/* Show Message                  */
 /* ---------------------------- */
 
-export function showDramaticMessage(text) {
+export function showAbnoMessage(text) {
+
   const config = game.settings.get("abno-text", "config");
 
-  const overlay = $(`
-    <div class="dramatic-overlay">
-      <div class="dramatic-text">${text}</div>
-    </div>
-  `);
+  const overlay = $(`<div class="abno-overlay"></div>`);
+  const textElement = $(`<div class="abno-text"></div>`);
 
-  overlay.find(".dramatic-text").css({
-    "font-size": config.fontSize + "px",
-    "color": config.color,
-    "font-family": config.fontFamily
-  });
-
+  overlay.append(textElement);
   $("body").append(overlay);
 
+  textElement.css({
+    "font-size": config.fontSize + "px",
+    "color": config.color,
+    "font-family": config.fontFamily,
+    "position": "absolute"
+  });
+
+  /* Random Position */
+  if (config.randomPosition) {
+    const x = Math.random() * (window.innerWidth * 0.8);
+    const y = Math.random() * (window.innerHeight * 0.8);
+    textElement.css({
+      left: x + "px",
+      top: y + "px"
+    });
+  } else {
+    textElement.css({
+      left: "50%",
+      top: "50%",
+      transform: "translate(-50%, -50%)"
+    });
+  }
+
+  /* Random Angle */
+  if (config.randomAngle) {
+    const angle = (Math.random() * config.maxAngle * 2) - config.maxAngle;
+    textElement.css({
+      transform: `rotate(${angle}deg)`
+    });
+  }
+
+  /* Typewriter Effect */
+  let i = 0;
+  const typingInterval = setInterval(() => {
+    textElement.text(text.slice(0, i));
+    i++;
+
+    if (i > text.length) {
+      clearInterval(typingInterval);
+    }
+  }, config.typingSpeed);
+
+  /* Remove After Duration */
   setTimeout(() => {
     overlay.fadeOut(500, () => overlay.remove());
   }, config.duration);
@@ -69,7 +111,7 @@ export function showDramaticMessage(text) {
 
 
 /* ---------------------------- */
-/*  Random Message              */
+/* Random Message                */
 /* ---------------------------- */
 
 function playRandomMessage() {
@@ -77,12 +119,12 @@ function playRandomMessage() {
   if (!config.messages.length) return;
 
   const random = config.messages[Math.floor(Math.random() * config.messages.length)];
-  showDramaticMessage(random);
+  showAbnoMessage(random);
 }
 
 
 /* ---------------------------- */
-/*  Auto Interval               */
+/* Auto Interval                 */
 /* ---------------------------- */
 
 function startAutoMessages() {
@@ -99,14 +141,15 @@ function startAutoMessages() {
 
 
 /* ---------------------------- */
-/*  Settings Form               */
+/* Config Form                   */
 /* ---------------------------- */
 
-class DramaticMessagesConfig extends FormApplication {
+class AbnoTextConfig extends FormApplication {
+
   static get defaultOptions() {
     return mergeObject(super.defaultOptions, {
       id: "abno-text-config",
-      title: "Dramatic Messages Configuration",
+      title: "Abno-Text Configuration",
       template: "modules/abno-text/templates/settings.html",
       width: 600,
       height: "auto"
@@ -118,12 +161,16 @@ class DramaticMessagesConfig extends FormApplication {
   }
 
   async _updateObject(event, formData) {
+
     const data = expandObject(formData);
 
     data.messages = data.messages
       .split("\n")
       .map(m => m.trim())
       .filter(m => m.length > 0);
+
+    data.randomPosition = !!formData.randomPosition;
+    data.randomAngle = !!formData.randomAngle;
 
     await game.settings.set("abno-text", "config", data);
 
