@@ -72,9 +72,9 @@ function getNextMessage() {
 /* ---------------------------- */
 
 export function showAbnoMessage(text) {
-
   const config = game.settings.get("abno-text", "config");
 
+  // Hard cap on simultaneous messages
   if (activeRects.length >= config.maxSimultaneous) return;
 
   const overlay = $(`<div class="abno-overlay"></div>`);
@@ -82,7 +82,6 @@ export function showAbnoMessage(text) {
 
   overlay.append(textElement);
   document.body.appendChild(overlay[0]);
-
   overlay.css({ opacity: 0 });
 
   textElement.css({
@@ -103,8 +102,14 @@ export function showAbnoMessage(text) {
     autoScaleText(textElement[0]);
   }
 
-  const placedRect = placeWithoutOverlap(textElement);
+  // Calculate random rotation BEFORE placement
+  let rotationDeg = 0;
+  if (config.randomAngle) {
+    rotationDeg = (Math.random() * config.maxAngle * 2) - config.maxAngle;
+  }
 
+  // Place text taking rotation into account
+  const placedRect = placeWithoutOverlap(textElement, rotationDeg);
   if (!placedRect) {
     overlay.remove();
     return;
@@ -112,19 +117,16 @@ export function showAbnoMessage(text) {
 
   activeRects.push(placedRect);
 
-  // Apply random rotation AFTER placement
-  if (config.randomAngle) {
-    const angle = (Math.random() * config.maxAngle * 2) - config.maxAngle;
-    textElement.css("transform", `rotate(${angle}deg)`);
-  }
+  // Apply rotation
+  textElement.css("transform", `rotate(${rotationDeg}deg)`);
 
+  // Fade in overlay
   overlay.animate({ opacity: 1 }, 150);
 
-  // Clear for typing
+  // Clear text for typing effect
   textElement.text("");
 
   let i = 0;
-
   const typingInterval = setInterval(() => {
     textElement.text(text.slice(0, i));
     i++;
@@ -136,39 +138,46 @@ export function showAbnoMessage(text) {
   }, config.typingSpeed);
 }
 
+
 /* ---------------------------- */
 /* PERFECT PLACEMENT SYSTEM     */
 /* ---------------------------- */
 
-function placeWithoutOverlap(element) {
-
-  element[0].offsetWidth;
+function placeWithoutOverlap(element, rotationDeg = 0) {
+  element[0].offsetWidth; // force layout
 
   const rect = element[0].getBoundingClientRect();
-  const width = rect.width;
-  const height = rect.height;
+  let width = rect.width;
+  let height = rect.height;
 
-  const maxX = window.innerWidth - width;
-  const maxY = window.innerHeight - height;
+  // Convert rotation to radians
+  const angle = rotationDeg * Math.PI / 180;
+
+  // Calculate rotated bounding box
+  const rotatedWidth = Math.abs(width * Math.cos(angle)) + Math.abs(height * Math.sin(angle));
+  const rotatedHeight = Math.abs(width * Math.sin(angle)) + Math.abs(height * Math.cos(angle));
+
+  const maxX = window.innerWidth - rotatedWidth;
+  const maxY = window.innerHeight - rotatedHeight;
 
   if (maxX <= 0 || maxY <= 0) return null;
 
   let tries = 0;
 
   while (tries < 50) {
-
     const x = Math.random() * maxX;
     const y = Math.random() * maxY;
 
     element.css({
       left: x + "px",
-      top: y + "px"
+      top: y + "px",
+      transform: `rotate(${rotationDeg}deg)`
     });
 
     const newRect = element[0].getBoundingClientRect();
 
+    // Check overlap
     let overlaps = false;
-
     for (let r of activeRects) {
       if (!(newRect.right < r.left ||
             newRect.left > r.right ||
@@ -179,15 +188,14 @@ function placeWithoutOverlap(element) {
       }
     }
 
-    if (!overlaps) {
-      return newRect;
-    }
+    if (!overlaps) return newRect;
 
     tries++;
   }
 
   return null;
 }
+
 
 /* ---------------------------- */
 /* LIFETIME                     */
