@@ -1,0 +1,34 @@
+<form>
+  <div class="form-group">
+    <label>Messages (one per line)</label>
+    <textarea name="messages" rows="8">{{#each messages}}{{this}}
+{{/each}}</textarea>
+  </div>
+
+  <div class="form-group">
+    <label>Duration (ms)</label>
+    <input type="number" name="duration" value="{{duration}}">
+  </div>
+
+  <div class="form-group">
+    <label>Frequency (seconds, 0 = disabled)</label>
+    <input type="number" name="frequency" value="{{frequency}}">
+  </div>
+
+  <div class="form-group">
+    <label>Font Size (px)</label>
+    <input type="number" name="fontSize" value="{{fontSize}}">
+  </div>
+
+  <div class="form-group">
+    <label>Font Color</label>
+    <input type="color" name="color" value="{{color}}">
+  </div>
+
+  <div class="form-group">
+    <label>Font Family</label>
+    <input type="text" name="fontFamily" value="{{fontFamily}}">
+  </div>
+
+  <button type="submit">Save</button>
+</form>

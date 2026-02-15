@@ -9,5 +9,9 @@
   "description": "<p>Module that lets you display text on screen like in abnormality fights in PM games</p>",
   "flags": {
     "canUpload": true
-  }
+  },
+  "esmodules": ["module.js"],
+  "styles": ["styles.css"],
+  "manifest": "",
+  "download": ""
 }
