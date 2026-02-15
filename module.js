@@ -1,9 +1,9 @@
 let intervalId = null;
 let sequenceIndex = 0;
-let activeMessages = [];
+let activeRects = [];
 
 /* ---------------------------- */
-/* Register Settings             */
+/* SETTINGS                     */
 /* ---------------------------- */
 
 Hooks.once("init", () => {
@@ -26,12 +26,14 @@ Hooks.once("init", () => {
       fontFamily: "serif",
       typingSpeed: 40,
       randomMode: false,
-      randomPosition: true,
       randomAngle: true,
       maxAngle: 25,
       autoScaleLongText: true,
-      preventOverlap: true,
-      maxSimultaneous: 3
+      maxSimultaneous: 3,
+
+      outlineEnabled: true,
+      outlineColor: "#000000",
+      outlineThickness: 3
     }
   });
 
@@ -49,7 +51,7 @@ Hooks.once("ready", () => {
 });
 
 /* ---------------------------- */
-/* Message Selection             */
+/* MESSAGE PICKING              */
 /* ---------------------------- */
 
 function getNextMessage() {
@@ -66,153 +68,192 @@ function getNextMessage() {
 }
 
 /* ---------------------------- */
-/* Main Display Function         */
+/* SHOW MESSAGE                 */
 /* ---------------------------- */
 
 export function showAbnoMessage(text) {
 
   const config = game.settings.get("abno-text", "config");
 
-  if (config.preventOverlap && activeMessages.length >= config.maxSimultaneous) {
-    return; // Hard cap
-  }
+  if (activeRects.length >= config.maxSimultaneous) return;
 
   const overlay = $(`<div class="abno-overlay"></div>`);
   const textElement = $(`<div class="abno-text"></div>`);
 
   overlay.append(textElement);
-
-  // Append to canvas instead of body (behind UI)
   document.body.appendChild(overlay[0]);
 
+  overlay.css({ opacity: 0 });
+
   textElement.css({
-    "font-size": config.fontSize + "px",
-    "color": config.color,
-    "font-family": config.fontFamily,
-    "position": "absolute",
-    "max-width": "90vw",
-    "max-height": "90vh",
-    "overflow-wrap": "break-word",
-    "word-break": "break-word",
-    "white-space": "normal",
-    "text-align": "center"
+    position: "absolute",
+    fontSize: config.fontSize + "px",
+    color: config.color,
+    fontFamily: config.fontFamily,
+    maxWidth: "90vw",
+    whiteSpace: "normal",
+    textAlign: "center",
+    textShadow: config.outlineEnabled ? generateOutline(config) : "none"
   });
 
-  positionMessage(textElement, config);
+  // Put full text temporarily to measure size
+  textElement.text(text);
 
-  if (config.randomAngle) {
-    const angle = (Math.random() * config.maxAngle * 2) - config.maxAngle;
-    textElement.css({
-      transform: `rotate(${angle}deg)`
-    });
+  if (config.autoScaleLongText) {
+    autoScaleText(textElement[0]);
   }
 
-  /* Typing Effect */
+  const placedRect = placeWithoutOverlap(textElement);
+
+  if (!placedRect) {
+    overlay.remove();
+    return;
+  }
+
+  activeRects.push(placedRect);
+
+  // Apply random rotation AFTER placement
+  if (config.randomAngle) {
+    const angle = (Math.random() * config.maxAngle * 2) - config.maxAngle;
+    textElement.css("transform", `rotate(${angle}deg)`);
+  }
+
+  overlay.animate({ opacity: 1 }, 150);
+
+  // Clear for typing
+  textElement.text("");
+
   let i = 0;
+
   const typingInterval = setInterval(() => {
     textElement.text(text.slice(0, i));
     i++;
 
     if (i > text.length) {
       clearInterval(typingInterval);
-
-      if (config.autoScaleLongText) {
-        autoScaleText(textElement);
-      }
-
-      startLifetimeTimer(overlay, config);
+      startLifetimeTimer(overlay, placedRect, config);
     }
-
   }, config.typingSpeed);
-
-  activeMessages.push(overlay);
 }
 
 /* ---------------------------- */
-/* Positioning + Overlap Check   */
+/* PERFECT PLACEMENT SYSTEM     */
 /* ---------------------------- */
 
-function positionMessage(element, config) {
+function placeWithoutOverlap(element) {
 
-  if (!config.randomPosition) {
-    element.css({
-      left: "50%",
-      top: "50%",
-      transform: "translate(-50%, -50%)"
-    });
-    return;
-  }
+  element[0].offsetWidth;
+
+  const rect = element[0].getBoundingClientRect();
+  const width = rect.width;
+  const height = rect.height;
+
+  const maxX = window.innerWidth - width;
+  const maxY = window.innerHeight - height;
+
+  if (maxX <= 0 || maxY <= 0) return null;
 
   let tries = 0;
-  let placed = false;
 
-  while (!placed && tries < 15) {
+  while (tries < 50) {
 
-    const x = Math.random() * (window.innerWidth * 0.7);
-    const y = Math.random() * (window.innerHeight * 0.7);
+    const x = Math.random() * maxX;
+    const y = Math.random() * maxY;
 
-    element.css({ left: x + "px", top: y + "px" });
+    element.css({
+      left: x + "px",
+      top: y + "px"
+    });
 
-    placed = !isOverlapping(element);
+    const newRect = element[0].getBoundingClientRect();
+
+    let overlaps = false;
+
+    for (let r of activeRects) {
+      if (!(newRect.right < r.left ||
+            newRect.left > r.right ||
+            newRect.bottom < r.top ||
+            newRect.top > r.bottom)) {
+        overlaps = true;
+        break;
+      }
+    }
+
+    if (!overlaps) {
+      return newRect;
+    }
 
     tries++;
   }
-}
 
-function isOverlapping(element) {
-
-  const rect1 = element[0].getBoundingClientRect();
-
-  for (let msg of activeMessages) {
-    const rect2 = msg[0].getBoundingClientRect();
-
-    if (!(rect1.right < rect2.left ||
-          rect1.left > rect2.right ||
-          rect1.bottom < rect2.top ||
-          rect1.top > rect2.bottom)) {
-      return true;
-    }
-  }
-
-  return false;
+  return null;
 }
 
 /* ---------------------------- */
-/* Lifetime + Fade               */
+/* LIFETIME                     */
 /* ---------------------------- */
 
-function startLifetimeTimer(overlay, config) {
+function startLifetimeTimer(overlay, rect, config) {
 
   setTimeout(() => {
 
     overlay.fadeOut(config.fadeOutTime, () => {
-      activeMessages = activeMessages.filter(m => m !== overlay);
+
+      activeRects = activeRects.filter(r =>
+        !(r.left === rect.left &&
+          r.top === rect.top &&
+          r.right === rect.right &&
+          r.bottom === rect.bottom)
+      );
+
       overlay.remove();
+
     });
 
   }, config.duration);
 }
 
 /* ---------------------------- */
-/* Auto Scaling                  */
+/* OUTLINE                      */
+/* ---------------------------- */
+
+function generateOutline(config) {
+
+  const thickness = config.outlineThickness;
+  const color = config.outlineColor;
+  const shadows = [];
+
+  for (let x = -thickness; x <= thickness; x++) {
+    for (let y = -thickness; y <= thickness; y++) {
+      if (x !== 0 || y !== 0) {
+        shadows.push(`${x}px ${y}px 0 ${color}`);
+      }
+    }
+  }
+
+  return shadows.join(",");
+}
+
+/* ---------------------------- */
+/* AUTO SCALE                   */
 /* ---------------------------- */
 
 function autoScaleText(element) {
 
-  let fontSize = parseInt(element.css("font-size"));
+  let size = parseInt(window.getComputedStyle(element).fontSize);
 
   while (
-    (element[0].scrollWidth > window.innerWidth * 0.9 ||
-     element[0].scrollHeight > window.innerHeight * 0.9)
-     && fontSize > 12
+    (element.scrollWidth > window.innerWidth * 0.95 ||
+     element.scrollHeight > window.innerHeight * 0.95)
+     && size > 12
   ) {
-    fontSize -= 2;
-    element.css("font-size", fontSize + "px");
+    size -= 2;
+    element.style.fontSize = size + "px";
   }
 }
 
 /* ---------------------------- */
-/* Auto Play                     */
+/* AUTO PLAY                    */
 /* ---------------------------- */
 
 function playNextMessage() {
@@ -227,14 +268,12 @@ function startAutoMessages() {
   if (intervalId) clearInterval(intervalId);
 
   if (config.frequency > 0) {
-    intervalId = setInterval(() => {
-      playNextMessage();
-    }, config.frequency * 1000);
+    intervalId = setInterval(playNextMessage, config.frequency * 1000);
   }
 }
 
 /* ---------------------------- */
-/* Config Form                   */
+/* CONFIG FORM                  */
 /* ---------------------------- */
 
 class AbnoTextConfig extends FormApplication {
@@ -244,8 +283,7 @@ class AbnoTextConfig extends FormApplication {
       id: "abno-text-config",
       title: "Abno-Text Configuration",
       template: "modules/abno-text/templates/settings.html",
-      width: 650,
-      height: "auto"
+      width: 650
     });
   }
 
@@ -262,11 +300,10 @@ class AbnoTextConfig extends FormApplication {
       .map(m => m.trim())
       .filter(m => m.length > 0);
 
-    data.randomPosition = !!formData.randomPosition;
-    data.randomAngle = !!formData.randomAngle;
     data.randomMode = !!formData.randomMode;
+    data.randomAngle = !!formData.randomAngle;
     data.autoScaleLongText = !!formData.autoScaleLongText;
-    data.preventOverlap = !!formData.preventOverlap;
+    data.outlineEnabled = !!formData.outlineEnabled;
 
     await game.settings.set("abno-text", "config", data);
 
