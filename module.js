@@ -1,5 +1,6 @@
 let intervalId = null;
 let sequenceIndex = 0;
+let activeMessages = [];
 
 /* ---------------------------- */
 /* Register Settings             */
@@ -14,10 +15,11 @@ Hooks.once("init", () => {
     default: {
       messages: [
         "The air trembles...",
-        "Something watches from beyond.",
-        "Fate tightens its grip upon reality."
+        "Something watches.",
+        "Fate tightens."
       ],
-      duration: 5000,
+      duration: 4000,
+      fadeOutTime: 600,
       frequency: 0,
       fontSize: 64,
       color: "#ff3333",
@@ -27,7 +29,9 @@ Hooks.once("init", () => {
       randomPosition: true,
       randomAngle: true,
       maxAngle: 25,
-      autoScaleLongText: true
+      autoScaleLongText: true,
+      preventOverlap: true,
+      maxSimultaneous: 3
     }
   });
 
@@ -40,22 +44,15 @@ Hooks.once("init", () => {
 
 });
 
-
-/* ---------------------------- */
-/* Ready                         */
-/* ---------------------------- */
-
 Hooks.once("ready", () => {
   startAutoMessages();
 });
 
-
 /* ---------------------------- */
-/* Message Selection Logic       */
+/* Message Selection             */
 /* ---------------------------- */
 
 function getNextMessage() {
-
   const config = game.settings.get("abno-text", "config");
   if (!config.messages.length) return null;
 
@@ -68,22 +65,26 @@ function getNextMessage() {
   return msg;
 }
 
-
 /* ---------------------------- */
-/* Show Message                  */
+/* Main Display Function         */
 /* ---------------------------- */
 
 export function showAbnoMessage(text) {
 
   const config = game.settings.get("abno-text", "config");
 
+  if (config.preventOverlap && activeMessages.length >= config.maxSimultaneous) {
+    return; // Hard cap
+  }
+
   const overlay = $(`<div class="abno-overlay"></div>`);
   const textElement = $(`<div class="abno-text"></div>`);
 
   overlay.append(textElement);
-  $("body").append(overlay);
 
-  /* Base styling */
+  // Append to canvas instead of body (behind UI)
+  document.body.appendChild(overlay[0]);
+
   textElement.css({
     "font-size": config.fontSize + "px",
     "color": config.color,
@@ -97,23 +98,8 @@ export function showAbnoMessage(text) {
     "text-align": "center"
   });
 
-  /* Position */
-  if (config.randomPosition) {
-    const x = Math.random() * (window.innerWidth * 0.6);
-    const y = Math.random() * (window.innerHeight * 0.6);
-    textElement.css({
-      left: x + "px",
-      top: y + "px"
-    });
-  } else {
-    textElement.css({
-      left: "50%",
-      top: "50%",
-      transform: "translate(-50%, -50%)"
-    });
-  }
+  positionMessage(textElement, config);
 
-  /* Rotation */
   if (config.randomAngle) {
     const angle = (Math.random() * config.maxAngle * 2) - config.maxAngle;
     textElement.css({
@@ -121,7 +107,7 @@ export function showAbnoMessage(text) {
     });
   }
 
-  /* Typewriter */
+  /* Typing Effect */
   let i = 0;
   const typingInterval = setInterval(() => {
     textElement.text(text.slice(0, i));
@@ -130,22 +116,85 @@ export function showAbnoMessage(text) {
     if (i > text.length) {
       clearInterval(typingInterval);
 
-      /* Auto scale long text AFTER full render */
       if (config.autoScaleLongText) {
         autoScaleText(textElement);
       }
+
+      startLifetimeTimer(overlay, config);
     }
 
   }, config.typingSpeed);
 
+  activeMessages.push(overlay);
+}
+
+/* ---------------------------- */
+/* Positioning + Overlap Check   */
+/* ---------------------------- */
+
+function positionMessage(element, config) {
+
+  if (!config.randomPosition) {
+    element.css({
+      left: "50%",
+      top: "50%",
+      transform: "translate(-50%, -50%)"
+    });
+    return;
+  }
+
+  let tries = 0;
+  let placed = false;
+
+  while (!placed && tries < 15) {
+
+    const x = Math.random() * (window.innerWidth * 0.7);
+    const y = Math.random() * (window.innerHeight * 0.7);
+
+    element.css({ left: x + "px", top: y + "px" });
+
+    placed = !isOverlapping(element);
+
+    tries++;
+  }
+}
+
+function isOverlapping(element) {
+
+  const rect1 = element[0].getBoundingClientRect();
+
+  for (let msg of activeMessages) {
+    const rect2 = msg[0].getBoundingClientRect();
+
+    if (!(rect1.right < rect2.left ||
+          rect1.left > rect2.right ||
+          rect1.bottom < rect2.top ||
+          rect1.top > rect2.bottom)) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+/* ---------------------------- */
+/* Lifetime + Fade               */
+/* ---------------------------- */
+
+function startLifetimeTimer(overlay, config) {
+
   setTimeout(() => {
-    overlay.fadeOut(500, () => overlay.remove());
+
+    overlay.fadeOut(config.fadeOutTime, () => {
+      activeMessages = activeMessages.filter(m => m !== overlay);
+      overlay.remove();
+    });
+
   }, config.duration);
 }
 
-
 /* ---------------------------- */
-/* Auto Scaling Logic            */
+/* Auto Scaling                  */
 /* ---------------------------- */
 
 function autoScaleText(element) {
@@ -162,20 +211,14 @@ function autoScaleText(element) {
   }
 }
 
-
 /* ---------------------------- */
-/* Play Next                     */
+/* Auto Play                     */
 /* ---------------------------- */
 
 function playNextMessage() {
   const msg = getNextMessage();
   if (msg) showAbnoMessage(msg);
 }
-
-
-/* ---------------------------- */
-/* Auto Interval                 */
-/* ---------------------------- */
 
 function startAutoMessages() {
 
@@ -190,7 +233,6 @@ function startAutoMessages() {
   }
 }
 
-
 /* ---------------------------- */
 /* Config Form                   */
 /* ---------------------------- */
@@ -202,7 +244,7 @@ class AbnoTextConfig extends FormApplication {
       id: "abno-text-config",
       title: "Abno-Text Configuration",
       template: "modules/abno-text/templates/settings.html",
-      width: 600,
+      width: 650,
       height: "auto"
     });
   }
@@ -224,6 +266,7 @@ class AbnoTextConfig extends FormApplication {
     data.randomAngle = !!formData.randomAngle;
     data.randomMode = !!formData.randomMode;
     data.autoScaleLongText = !!formData.autoScaleLongText;
+    data.preventOverlap = !!formData.preventOverlap;
 
     await game.settings.set("abno-text", "config", data);
 
