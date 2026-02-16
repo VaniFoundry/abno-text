@@ -64,6 +64,19 @@ Hooks.once("init", () => {
   Handlebars.registerHelper('eq', function(a, b) {
     return a === b;
   });
+
+  // ----------------------------
+  // SOCKET COMMUNICATION SETUP
+  // ----------------------------
+  // Register socket handler to receive broadcasted messages from GM
+  game.socket.on("module.abno-text", (data) => {
+    //console.log("ABNO: Received broadcast message:", data.message);
+    if (data.message) {
+      showAbnoMessage(data.message);
+    }
+  });
+  
+  console.log("ABNO: Socket communication setup complete");
 });
 
 
@@ -71,8 +84,15 @@ Hooks.once("init", () => {
 /* READY                        */
 /* ---------------------------- */
 Hooks.once("ready", () => {
-  if (game.settings.get("abno-text", "enabled")) startAutoMessages();
-  console.log("ABNO: Module ready, enabled =", game.settings.get("abno-text", "enabled"));
+  // Only start auto-messages if user is GM
+  if (game.user.isGM && game.settings.get("abno-text", "enabled")) {
+    startAutoMessages();
+    console.log("ABNO: Module ready, GM mode enabled =", game.settings.get("abno-text", "enabled"));
+  } else if (!game.user.isGM) {
+    console.log("ABNO: Module ready, non-GM user - auto-messages disabled");
+  } else {
+    console.log("ABNO: Module ready, enabled =", game.settings.get("abno-text", "enabled"));
+  }
 });
 
 
@@ -276,11 +296,19 @@ function autoScaleText(element) {
 
 function playNextMessage() {
   const msg = getNextMessage();
-  if (msg) showAbnoMessage(msg);
+  if (msg) {
+    // If user is GM, broadcast the message to all clients
+    if (game.user.isGM) {
+      game.socket.emit("module.abno-text", { message: msg });
+      console.log("ABNO: Broadcasted message to all clients:", msg);
+    }
+    // GM also shows the message locally
+    showAbnoMessage(msg);
+  }
 }
 
 function startAutoMessages() {
-  if (!game.settings.get("abno-text", "enabled")) return;
+  if (!game.settings.get("abno-text", "enabled") && game.user.isGM) return;
   const config = game.settings.get("abno-text", "config");
   if (intervalId) clearInterval(intervalId);
   if (config.frequency > 0) {
