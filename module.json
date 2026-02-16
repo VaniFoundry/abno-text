@@ -13,5 +13,6 @@
   "esmodules": ["module.js"],
   "styles": ["styles.css"],
   "manifest": "",
-  "download": ""
+  "download": "",
+  "socket": true
 }

@@ -13,7 +13,7 @@ Hooks.once("init", () => {
     config: false,
     type: Object,
     default: {
-      messages: ["The air trembles...", "Something watches.", "Fate tightens."],
+      messages: ["Default text...", "Default second line of text.", "Third line of default text."],
       duration: 4000,
       fadeOutTime: 600,
       frequency: 0,
@@ -410,7 +410,7 @@ class AbnoLoadoutMenu extends FormApplication {
         loadouts.custom[name] = foundry.utils.duplicate(currentConfig);
         
         await game.settings.set("abno-text", "loadouts", loadouts);
-        ui.notifications.info(`✅ Loadout "${name}" saved!`);
+        ui.notifications.info(`Loadout "${name}" saved!`);
         console.log("ABNO: Loadout saved successfully");
         
         // Limpiar input
@@ -418,7 +418,7 @@ class AbnoLoadoutMenu extends FormApplication {
         
         this.render();
       } else {
-        ui.notifications.warn("⚠️ Please enter a loadout name");
+        ui.notifications.warn("Please enter a loadout name");
       }
     });
     
@@ -436,12 +436,12 @@ class AbnoLoadoutMenu extends FormApplication {
         await game.settings.set("abno-text", "activeLoadout", name);
         sequenceIndex = 0;
         startAutoMessages();
-        ui.notifications.info(`✅ Loadout "${name}" activated!`);
+        ui.notifications.info(`Loadout "${name}" activated!`);
         console.log("ABNO: Loadout activated successfully");
         
         this.render();
       } else {
-        ui.notifications.error(`❌ Loadout "${name}" not found`);
+        ui.notifications.error(`Loadout "${name}" not found`);
       }
     });
     
@@ -461,7 +461,7 @@ class AbnoLoadoutMenu extends FormApplication {
         await game.settings.set("abno-text", "activeLoadout", "default");
       }
       
-      ui.notifications.info(`🗑️ Loadout "${name}" deleted`);
+      ui.notifications.info(`Loadout "${name}" deleted`);
       console.log("ABNO: Loadout deleted successfully");
       
       this.render();
@@ -473,7 +473,7 @@ class AbnoLoadoutMenu extends FormApplication {
       console.log("ABNO: Restore default button clicked");
       
       await game.settings.set("abno-text", "activeLoadout", "default");
-      ui.notifications.info("🔄 Default configuration activated");
+      ui.notifications.info("Default configuration activated");
       console.log("ABNO: Default loadout activated");
       
       this.render();
