@@ -59,6 +59,11 @@ Hooks.once("init", () => {
     type: AbnoTextConfig,
     restricted: true
   });
+  
+  // Registrar helper de Handlebars para comparación
+  Handlebars.registerHelper('eq', function(a, b) {
+    return a === b;
+  });
 });
 
 
@@ -72,19 +77,16 @@ Hooks.once("ready", () => {
 
 
 /* ---------------------------- */
-/* SCENE CONTROLS (V13 FINAL)   */
+/* SCENE CONTROLS (V13 FIXED)   */
 /* ---------------------------- */
 Hooks.on("getSceneControlButtons", (controls) => {
   console.log("ABNO: getSceneControlButtons hook fired");
-  console.log("ABNO: controls type:", typeof controls);
-  console.log("ABNO: User is GM?", game.user.isGM);
   
   if (!game.user.isGM) {
     console.log("ABNO: User is not GM, skipping");
     return;
   }
 
-  // En v13, controls es un objeto indexado por nombre
   // Crear nuestro propio grupo de controles
   controls.abnoText = {
     name: "abnoText",
@@ -92,27 +94,46 @@ Hooks.on("getSceneControlButtons", (controls) => {
     icon: "fas fa-comment",
     visible: true,
     layer: "controls",
-    activeTool: "toggle",
+    activeTool: "select",
     tools: {
+      // Tool de selección (requerido)
+      select: {
+        name: "select",
+        title: "Abno Text Controls",
+        icon: "fas fa-comment"
+      },
+      // Toggle Enable/Disable - CORREGIDO
       toggle: {
         name: "toggle",
-        title: "Enable/Disable Abno-Text",
+        title: game.settings.get("abno-text", "enabled") ? "Disable Abno-Text" : "Enable Abno-Text",
         icon: "fas fa-power-off",
         toggle: true,
         active: game.settings.get("abno-text", "enabled"),
-        onClick: async (toggled) => {
-          console.log("ABNO: Toggle clicked, new state:", toggled);
-          await game.settings.set("abno-text", "enabled", toggled);
+        onClick: async () => {
+          // Invertir el estado actual
+          const currentState = game.settings.get("abno-text", "enabled");
+          const newState = !currentState;
           
-          if (!toggled && intervalId) {
+          console.log("ABNO: Toggle clicked, changing from", currentState, "to", newState);
+          
+          await game.settings.set("abno-text", "enabled", newState);
+          
+          if (!newState && intervalId) {
             clearInterval(intervalId);
             intervalId = null;
+            console.log("ABNO: Auto messages stopped");
           }
-          if (toggled) startAutoMessages();
+          if (newState) {
+            startAutoMessages();
+            console.log("ABNO: Auto messages started");
+          }
           
+          // Actualizar la UI
           ui.controls.render();
+          ui.notifications.info(`Abno-Text ${newState ? "Enabled" : "Disabled"}`);
         }
       },
+      // Loadouts menu
       loadouts: {
         name: "loadouts",
         title: "Open Abno-Text Loadouts",
@@ -123,6 +144,7 @@ Hooks.on("getSceneControlButtons", (controls) => {
           new AbnoLoadoutMenu().render(true);
         }
       },
+      // Config menu
       config: {
         name: "config",
         title: "Open Abno-Text Configuration",
@@ -261,7 +283,10 @@ function startAutoMessages() {
   if (!game.settings.get("abno-text", "enabled")) return;
   const config = game.settings.get("abno-text", "config");
   if (intervalId) clearInterval(intervalId);
-  if (config.frequency > 0) intervalId = setInterval(playNextMessage, config.frequency * 1000);
+  if (config.frequency > 0) {
+    intervalId = setInterval(playNextMessage, config.frequency * 1000);
+    console.log("ABNO: Auto messages interval set to", config.frequency, "seconds");
+  }
 }
 
 
@@ -270,11 +295,14 @@ function startAutoMessages() {
 /* ---------------------------- */
 class AbnoTextConfig extends FormApplication {
   static get defaultOptions() {
-    return mergeObject(super.defaultOptions, { 
+    return foundry.utils.mergeObject(super.defaultOptions, { 
       id: "abno-text-config", 
       title: "Abno-Text Configuration", 
       template: "modules/abno-text/templates/settings.html", 
-      width: 650 
+      width: 650,
+      height: "auto",
+      closeOnSubmit: true,
+      submitOnChange: false
     });
   }
   
@@ -283,64 +311,144 @@ class AbnoTextConfig extends FormApplication {
   }
   
   async _updateObject(event, formData) {
-    const data = expandObject(formData);
+    console.log("ABNO: Saving config", formData);
+    const data = foundry.utils.expandObject(formData);
     data.messages = data.messages.split("\n").map(m => m.trim()).filter(m => m.length > 0);
     data.randomMode = !!formData.randomMode;
     data.randomAngle = !!formData.randomAngle;
     data.autoScaleLongText = !!formData.autoScaleLongText;
     data.outlineEnabled = !!formData.outlineEnabled;
+    
     await game.settings.set("abno-text", "config", data);
     sequenceIndex = 0;
     startAutoMessages();
+    
+    ui.notifications.info("Abno-Text configuration saved!");
+    console.log("ABNO: Config saved successfully");
   }
 }
 
 /* ---------------------------- */
-/* LOADOUT MENU                 */
+/* LOADOUT MENU - FIXED         */
 /* ---------------------------- */
 class AbnoLoadoutMenu extends FormApplication {
   static get defaultOptions() {
-    return mergeObject(super.defaultOptions, { 
+    return foundry.utils.mergeObject(super.defaultOptions, { 
       id: "abno-loadout-menu", 
       title: "Abno-Text Loadouts", 
       template: "modules/abno-text/templates/loadouts.html", 
-      width: 500 
+      width: 500,
+      height: "auto",
+      closeOnSubmit: false,
+      submitOnChange: false
     });
   }
   
   getData() {
+    const loadouts = game.settings.get("abno-text", "loadouts");
+    const activeLoadout = game.settings.get("abno-text", "activeLoadout");
+    
+    // Asegurar que loadouts.custom existe
+    if (!loadouts.custom) {
+      loadouts.custom = {};
+    }
+    
+    console.log("ABNO Loadouts getData:");
+    console.log("  - Full loadouts object:", loadouts);
+    console.log("  - Custom loadouts:", loadouts.custom);
+    console.log("  - Number of custom loadouts:", Object.keys(loadouts.custom).length);
+    console.log("  - Custom loadout names:", Object.keys(loadouts.custom));
+    console.log("  - Active loadout:", activeLoadout);
+    
     return { 
-      loadouts: game.settings.get("abno-text", "loadouts"), 
-      activeLoadout: game.settings.get("abno-text", "activeLoadout") 
+      loadouts: loadouts, 
+      activeLoadout: activeLoadout 
     };
   }
   
-  async _updateObject(event, formData) {
-    const loadouts = foundry.utils.duplicate(game.settings.get("abno-text", "loadouts"));
+  activateListeners(html) {
+    super.activateListeners(html);
+    
     const currentConfig = game.settings.get("abno-text", "config");
-
-    if (formData.addLoadout) {
-      const name = formData.addLoadoutName?.trim();
-      if (name) loadouts.custom[name] = currentConfig;
-      await game.settings.set("abno-text", "loadouts", loadouts);
-    }
-    if (formData.deleteLoadout) {
-      delete loadouts.custom[formData.deleteLoadout];
-      await game.settings.set("abno-text", "loadouts", loadouts);
-    }
-    if (formData.activateLoadout) {
-      if (formData.activateLoadout === "default") {
-        await game.settings.set("abno-text", "activeLoadout", "default");
+    
+    // Botón SAVE
+    html.find("#save-loadout-btn").on("click", async (event) => {
+      event.preventDefault();
+      const name = html.find("#loadout-name-input").val().trim();
+      console.log("ABNO: Save button clicked, name:", name);
+      
+      if (name && name.length > 0) {
+        const loadouts = foundry.utils.duplicate(game.settings.get("abno-text", "loadouts"));
+        loadouts.custom[name] = foundry.utils.duplicate(currentConfig);
+        
+        await game.settings.set("abno-text", "loadouts", loadouts);
+        ui.notifications.info(`✅ Loadout "${name}" saved!`);
+        console.log("ABNO: Loadout saved successfully");
+        
+        // Limpiar input
+        html.find("#loadout-name-input").val("");
+        
+        this.render();
       } else {
-        const selected = loadouts.custom[formData.activateLoadout];
-        if (selected) {
-          await game.settings.set("abno-text", "config", selected);
-          await game.settings.set("abno-text", "activeLoadout", formData.activateLoadout);
-        }
+        ui.notifications.warn("⚠️ Please enter a loadout name");
       }
-      sequenceIndex = 0;
-      startAutoMessages();
-    }
-    this.render();
+    });
+    
+    // Botones LOAD
+    html.find(".loadout-load-btn").on("click", async (event) => {
+      event.preventDefault();
+      const name = $(event.currentTarget).data("loadout");
+      console.log("ABNO: Load button clicked for:", name);
+      
+      const loadouts = game.settings.get("abno-text", "loadouts");
+      const selected = loadouts.custom[name];
+      
+      if (selected) {
+        await game.settings.set("abno-text", "config", foundry.utils.duplicate(selected));
+        await game.settings.set("abno-text", "activeLoadout", name);
+        sequenceIndex = 0;
+        startAutoMessages();
+        ui.notifications.info(`✅ Loadout "${name}" activated!`);
+        console.log("ABNO: Loadout activated successfully");
+        
+        this.render();
+      } else {
+        ui.notifications.error(`❌ Loadout "${name}" not found`);
+      }
+    });
+    
+    // Botones DELETE
+    html.find(".loadout-delete-btn").on("click", async (event) => {
+      event.preventDefault();
+      const name = $(event.currentTarget).data("loadout");
+      console.log("ABNO: Delete button clicked for:", name);
+      
+      const loadouts = foundry.utils.duplicate(game.settings.get("abno-text", "loadouts"));
+      delete loadouts.custom[name];
+      
+      await game.settings.set("abno-text", "loadouts", loadouts);
+      
+      // Si estamos eliminando el loadout activo, volver a default
+      if (game.settings.get("abno-text", "activeLoadout") === name) {
+        await game.settings.set("abno-text", "activeLoadout", "default");
+      }
+      
+      ui.notifications.info(`🗑️ Loadout "${name}" deleted`);
+      console.log("ABNO: Loadout deleted successfully");
+      
+      this.render();
+    });
+    
+    // Botón RESTORE DEFAULT
+    html.find("#restore-default-btn").on("click", async (event) => {
+      event.preventDefault();
+      console.log("ABNO: Restore default button clicked");
+      
+      await game.settings.set("abno-text", "activeLoadout", "default");
+      ui.notifications.info("🔄 Default configuration activated");
+      console.log("ABNO: Default loadout activated");
+      
+      this.render();
+    });
   }
 }

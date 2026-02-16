@@ -1,49 +1,80 @@
 <form>
 
+  <!-- LOADOUTS GUARDADOS -->
   <div class="form-group">
-    <label>Loadouts</label>
-
-    {{#each loadouts.custom}}
-      <div style="display:flex; align-items:center; gap:5px; margin-bottom:4px;">
-        <input type="radio"
-               name="activateLoadout"
-               value="{{@key}}"
-               {{#if (eq ../activeLoadout @key)}}checked{{/if}}>
-
-        <label>{{@key}}</label>
-
-        <button type="submit"
-                name="deleteLoadout"
-                value="{{@key}}">
-          Delete
-        </button>
-      </div>
-    {{/each}}
-
+    <label>Saved Loadouts</label>
+    
+    {{#if loadouts.custom}}
+      {{#each loadouts.custom}}
+        <div class="loadout-item" style="display: flex; align-items: center; gap: 6px; padding: 8px 10px; margin-bottom: 6px; background: {{#if (eq ../activeLoadout @key)}}#e8f5e9{{else}}#f5f5f5{{/if}}; border-radius: 4px; border-left: 3px solid {{#if (eq ../activeLoadout @key)}}#4caf50{{else}}#ddd{{/if}};">
+          
+          <span style="flex: 1; font-size: 13px; font-weight: {{#if (eq ../activeLoadout @key)}}600{{else}}normal{{/if}};">
+            {{@key}}
+            {{#if (eq ../activeLoadout @key)}}
+              <span style="color: #4caf50; font-size: 11px; margin-left: 4px;">(active)</span>
+            {{/if}}
+          </span>
+          
+          {{#unless (eq ../activeLoadout @key)}}
+            <button type="button" 
+                    class="loadout-load-btn"
+                    data-loadout="{{@key}}"
+                    style="padding: 4px 10px; background: #2196F3; color: white; border: none; border-radius: 3px; cursor: pointer; font-size: 12px;">
+              Load
+            </button>
+          {{/unless}}
+          
+          <button type="button" 
+                  class="loadout-delete-btn"
+                  data-loadout="{{@key}}"
+                  style="padding: 4px 10px; background: #f44336; color: white; border: none; border-radius: 3px; cursor: pointer; font-size: 12px;">
+            Delete
+          </button>
+        </div>
+      {{/each}}
+    {{else}}
+      <p style="color: #999; font-style: italic; padding: 12px; text-align: center; background: #fafafa; border-radius: 4px; font-size: 13px; margin: 8px 0;">
+        No saved loadouts yet.
+      </p>
+    {{/if}}
   </div>
 
   <hr>
 
+  <!-- GUARDAR NUEVO LOADOUT -->
   <div class="form-group">
-    <label>Add New Loadout (Saves Current Config)</label>
-    <input type="text"
-           name="addLoadoutName"
-           placeholder="Loadout Name">
-    <button type="submit"
-            name="addLoadout"
-            value="1">
-      Save
-    </button>
+    <label>Save Current Configuration as Loadout</label>
+    
+    <div style="display: flex; gap: 6px; margin-top: 8px;">
+      <input type="text" 
+             id="loadout-name-input"
+             name="addLoadoutName" 
+             placeholder="Enter loadout name..."
+             style="flex: 1; padding: 6px 10px; font-size: 13px;">
+      
+      <button type="button" 
+              id="save-loadout-btn"
+              style="padding: 6px 14px; background: #4caf50; color: white; border: none; border-radius: 3px; cursor: pointer; font-size: 12px; font-weight: 600;">
+        Save
+      </button>
+    </div>
   </div>
 
   <hr>
 
+  <!-- RESET A DEFAULT -->
   <div class="form-group">
-    <button type="submit"
-            name="activateLoadout"
-            value="default">
-      Activate Default
+    <label>Reset to Default</label>
+    
+    <button type="button" 
+            id="restore-default-btn"
+            style="width: 100%; padding: 8px; background: #757575; color: white; border: none; border-radius: 3px; cursor: pointer; font-size: 13px; margin-top: 8px;">
+      Restore Default Configuration
     </button>
+    
+    <p style="font-size: 11px; color: #999; margin-top: 6px; text-align: center;">
+      Active: <strong style="color: #333;">{{activeLoadout}}</strong>
+    </p>
   </div>
 
 </form>
