@@ -1,80 +1,318 @@
-<form>
+<style>
+  /* Reset form styles to avoid conflicts */
+  #abno-loadout-menu form {
+    all: initial;
+    display: block;
+  }
+  
+  #abno-loadout-menu form * {
+    box-sizing: border-box;
+  }
+  
+  /* Main container */
+  .abno-pm-container {
+    background: linear-gradient(135deg, #1a1a1a 0%, #2d2520 100%);
+    color: #E8D4B0;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    padding: 0;
+    margin: 0;
+  }
+  
+  /* Sections */
+  .abno-pm-section {
+    margin-bottom: 20px;
+  }
+  
+  .abno-pm-header {
+    color: #D4AF37;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    font-weight: bold;
+    font-size: 11px;
+    margin-bottom: 12px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid #5d4a3a;
+  }
+  
+  /* Scrollable list */
+  .abno-pm-list {
+    max-height: 280px;
+    overflow-y: auto;
+    padding-right: 4px;
+  }
+  
+  .abno-pm-list::-webkit-scrollbar {
+    width: 8px;
+  }
+  
+  .abno-pm-list::-webkit-scrollbar-track {
+    background: #1a1a1a;
+    border: 1px solid #3d2f1f;
+  }
+  
+  .abno-pm-list::-webkit-scrollbar-thumb {
+    background: #8B7355;
+    border: 1px solid #D4AF37;
+  }
+  
+  /* Loadout item */
+  .abno-pm-item {
+    background: #2a2520;
+    border: 1px solid #5d4a3a;
+    border-left: 3px solid #8B7355;
+    margin-bottom: 8px;
+    padding: 10px 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  
+  .abno-pm-item:hover {
+    border-color: #D4AF37;
+    border-left-color: #D4AF37;
+  }
+  
+  .abno-pm-item.active {
+    background: #3d2f1f;
+    border-left-color: #D4AF37;
+  }
+  
+  .abno-pm-item-name {
+    flex: 1;
+    color: #E8D4B0;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+  }
+  
+  .abno-pm-item.active .abno-pm-item-name {
+    color: #D4AF37;
+  }
+  
+  .abno-pm-badge {
+    display: inline-block;
+    margin-left: 8px;
+    padding: 2px 6px;
+    background: #D4AF37;
+    color: #1a1a1a;
+    font-size: 9px;
+    font-weight: bold;
+    text-transform: uppercase;
+    border-radius: 2px;
+  }
+  
+  /* Buttons */
+  .abno-pm-btn {
+    padding: 5px 12px;
+    border: 1px solid #5d4a3a;
+    background: #3d2f1f;
+    color: #E8D4B0;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    cursor: pointer;
+    border-radius: 2px;
+  }
+  
+  .abno-pm-btn:hover {
+    border-color: #D4AF37;
+    color: #D4AF37;
+  }
+  
+  .abno-pm-btn-load {
+    background: #2a4a6a;
+    border-color: #4A7BA7;
+  }
+  
+  .abno-pm-btn-load:hover {
+    border-color: #6BA3D4;
+    color: #6BA3D4;
+  }
+  
+  .abno-pm-btn-delete {
+    background: #5d2f2f;
+    border-color: #8B4545;
+  }
+  
+  .abno-pm-btn-delete:hover {
+    border-color: #D45555;
+    color: #D45555;
+  }
+  
+  .abno-pm-btn-save {
+    background: #3d5a2f;
+    border-color: #5d7a4a;
+    padding: 6px 12px;
+    white-space: nowrap;
+    flex: 1;
+    min-width: 80px;
+  }
+  
+  .abno-pm-btn-save:hover {
+    border-color: #7DA36B;
+    color: #7DA36B;
+  }
+  
+  .abno-pm-btn-default {
+    width: 100%;
+    padding: 10px;
+    margin-top: 10px;
+  }
+  
+  /* Input */
+  .abno-pm-input {
+    flex: 4;
+    min-width: 0;
+    background: #1a1a1a;
+    border: 1px solid #5d4a3a;
+    color: #E8D4B0;
+    padding: 8px 12px;
+    font-size: 13px;
+  }
+  
+  .abno-pm-input:focus {
+    outline: none;
+    border-color: #D4AF37;
+  }
+  
+  .abno-pm-input::placeholder {
+    color: #5d4a3a;
+    font-style: italic;
+  }
+  
+  /* Divider */
+  .abno-pm-divider {
+    height: 1px;
+    background: #5d4a3a;
+    margin: 20px 0;
+  }
+  
+  /* Empty state */
+  .abno-pm-empty {
+    text-align: center;
+    padding: 30px 20px;
+    background: rgba(26, 26, 26, 0.5);
+    border: 1px dashed #5d4a3a;
+    color: #5d4a3a;
+    font-style: italic;
+    font-size: 12px;
+  }
+  
+  /* Small text */
+  .abno-pm-hint {
+    font-size: 10px;
+    color: #5d4a3a;
+    margin-top: 6px;
+    font-style: italic;
+  }
+  
+  .abno-pm-status {
+    font-size: 10px;
+    color: #5d4a3a;
+    text-align: center;
+    margin-top: 8px;
+  }
+  
+  .abno-pm-status strong {
+    color: #D4AF37;
+  }
+  
+  /* Flex containers */
+  .abno-pm-flex {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+  
+  .abno-pm-buttons {
+    display: flex;
+    gap: 6px;
+  }
+</style>
 
-  <!-- LOADOUTS GUARDADOS -->
-  <div class="form-group">
-    <label>Saved Loadouts</label>
+<form class="abno-pm-container">
+
+  <!-- SAVED LOADOUTS -->
+  <div class="abno-pm-section">
+    <div class="abno-pm-header">Saved Configurations</div>
     
     {{#if loadouts.custom}}
-      {{#each loadouts.custom}}
-        <div class="loadout-item" style="display: flex; align-items: center; gap: 6px; padding: 8px 10px; margin-bottom: 6px; background: {{#if (eq ../activeLoadout @key)}}#e8f5e9{{else}}#f5f5f5{{/if}}; border-radius: 4px; border-left: 3px solid {{#if (eq ../activeLoadout @key)}}#4caf50{{else}}#ddd{{/if}};">
-          
-          <span style="flex: 1; font-size: 13px; font-weight: {{#if (eq ../activeLoadout @key)}}600{{else}}normal{{/if}};">
-            {{@key}}
-            {{#if (eq ../activeLoadout @key)}}
-              <span style="color: #4caf50; font-size: 11px; margin-left: 4px;">(active)</span>
-            {{/if}}
-          </span>
-          
-          {{#unless (eq ../activeLoadout @key)}}
-            <button type="button" 
-                    class="loadout-load-btn"
-                    data-loadout="{{@key}}"
-                    style="padding: 4px 10px; background: #2196F3; color: white; border: none; border-radius: 3px; cursor: pointer; font-size: 12px;">
-              Load
-            </button>
-          {{/unless}}
-          
-          <button type="button" 
-                  class="loadout-delete-btn"
-                  data-loadout="{{@key}}"
-                  style="padding: 4px 10px; background: #f44336; color: white; border: none; border-radius: 3px; cursor: pointer; font-size: 12px;">
-            Delete
-          </button>
-        </div>
-      {{/each}}
+      <div class="abno-pm-list">
+        {{#each loadouts.custom}}
+          <div class="abno-pm-item {{#if (eq ../activeLoadout @key)}}active{{/if}}">
+            <div class="abno-pm-item-name">
+              {{@key}}
+              {{#if (eq ../activeLoadout @key)}}
+                <span class="abno-pm-badge">Active</span>
+              {{/if}}
+            </div>
+            
+            <div class="abno-pm-buttons">
+              {{#unless (eq ../activeLoadout @key)}}
+                <button type="button" 
+                        class="abno-pm-btn abno-pm-btn-load loadout-load-btn"
+                        data-loadout="{{@key}}">
+                  Load
+                </button>
+              {{/unless}}
+              
+              <button type="button" 
+                      class="abno-pm-btn abno-pm-btn-delete loadout-delete-btn"
+                      data-loadout="{{@key}}">
+                Delete
+              </button>
+            </div>
+          </div>
+        {{/each}}
+      </div>
     {{else}}
-      <p style="color: #999; font-style: italic; padding: 12px; text-align: center; background: #fafafa; border-radius: 4px; font-size: 13px; margin: 8px 0;">
-        No saved loadouts yet.
-      </p>
+      <div class="abno-pm-empty">
+        No saved configurations found.<br>
+        Create your first loadout below.
+      </div>
     {{/if}}
   </div>
 
-  <hr>
+  <div class="abno-pm-divider"></div>
 
-  <!-- GUARDAR NUEVO LOADOUT -->
-  <div class="form-group">
-    <label>Save Current Configuration as Loadout</label>
+  <!-- SAVE NEW LOADOUT -->
+  <div class="abno-pm-section">
+    <div class="abno-pm-header">Save New Configuration</div>
     
-    <div style="display: flex; gap: 6px; margin-top: 8px;">
+    <div class="abno-pm-flex">
       <input type="text" 
              id="loadout-name-input"
+             class="abno-pm-input"
              name="addLoadoutName" 
-             placeholder="Enter loadout name..."
-             style="flex: 1; padding: 6px 10px; font-size: 13px;">
+             placeholder="Enter configuration name...">
       
       <button type="button" 
               id="save-loadout-btn"
-              style="padding: 6px 14px; background: #4caf50; color: white; border: none; border-radius: 3px; cursor: pointer; font-size: 12px; font-weight: 600;">
+              class="abno-pm-btn abno-pm-btn-save">
         Save
       </button>
     </div>
+    
+    <div class="abno-pm-hint">
+      Saves all current settings (messages, colors, timing, etc.)
+    </div>
   </div>
 
-  <hr>
+  <div class="abno-pm-divider"></div>
 
-  <!-- RESET A DEFAULT -->
-  <div class="form-group">
-    <label>Reset to Default</label>
+  <!-- RESET TO DEFAULT -->
+  <div class="abno-pm-section">
+    <div class="abno-pm-header">Reset Configuration</div>
     
     <button type="button" 
             id="restore-default-btn"
-            style="width: 100%; padding: 8px; background: #757575; color: white; border: none; border-radius: 3px; cursor: pointer; font-size: 13px; margin-top: 8px;">
-      Restore Default Configuration
+            class="abno-pm-btn abno-pm-btn-default">
+      Restore Default Settings
     </button>
     
-    <p style="font-size: 11px; color: #999; margin-top: 6px; text-align: center;">
-      Active: <strong style="color: #333;">{{activeLoadout}}</strong>
-    </p>
+    <div class="abno-pm-status">
+      Currently Active: <strong>{{activeLoadout}}</strong>
+    </div>
   </div>
 
 </form>
