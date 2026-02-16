@@ -60,7 +60,7 @@ Hooks.once("init", () => {
     restricted: true
   });
   
-  // Registrar helper de Handlebars para comparación
+  // Register Handlebars helper for comparison
   Handlebars.registerHelper('eq', function(a, b) {
     return a === b;
   });
@@ -107,7 +107,7 @@ Hooks.on("getSceneControlButtons", (controls) => {
     return;
   }
 
-  // Crear nuestro propio grupo de controles
+  // Create our own control group
   controls.abnoText = {
     name: "abnoText",
     title: "Abno Text",
@@ -116,13 +116,13 @@ Hooks.on("getSceneControlButtons", (controls) => {
     layer: "controls",
     activeTool: "select",
     tools: {
-      // Tool de selección (requerido)
+      // Selection tool (required)
       select: {
         name: "select",
         title: "Abno Text Controls",
         icon: "fas fa-comment"
       },
-      // Toggle Enable/Disable - CORREGIDO
+      // Toggle Enable/Disable - FIXED
       toggle: {
         name: "toggle",
         title: game.settings.get("abno-text", "enabled") ? "Disable Abno-Text" : "Enable Abno-Text",
@@ -130,7 +130,7 @@ Hooks.on("getSceneControlButtons", (controls) => {
         toggle: true,
         active: game.settings.get("abno-text", "enabled"),
         onClick: async () => {
-          // Invertir el estado actual
+          // Invert current state
           const currentState = game.settings.get("abno-text", "enabled");
           const newState = !currentState;
           
@@ -148,7 +148,7 @@ Hooks.on("getSceneControlButtons", (controls) => {
             console.log("ABNO: Auto messages started");
           }
           
-          // Actualizar la UI
+          // Update UI
           ui.controls.render();
           ui.notifications.info(`Abno-Text ${newState ? "Enabled" : "Disabled"}`);
         }
@@ -376,7 +376,7 @@ class AbnoLoadoutMenu extends FormApplication {
     const loadouts = game.settings.get("abno-text", "loadouts");
     const activeLoadout = game.settings.get("abno-text", "activeLoadout");
     
-    // Asegurar que loadouts.custom existe
+    // Ensure loadouts.custom exists
     if (!loadouts.custom) {
       loadouts.custom = {};
     }
@@ -399,7 +399,7 @@ class AbnoLoadoutMenu extends FormApplication {
     
     const currentConfig = game.settings.get("abno-text", "config");
     
-    // Botón SAVE
+    // SAVE button
     html.find("#save-loadout-btn").on("click", async (event) => {
       event.preventDefault();
       const name = html.find("#loadout-name-input").val().trim();
@@ -413,7 +413,7 @@ class AbnoLoadoutMenu extends FormApplication {
         ui.notifications.info(`Loadout "${name}" saved!`);
         console.log("ABNO: Loadout saved successfully");
         
-        // Limpiar input
+        // Clear input
         html.find("#loadout-name-input").val("");
         
         this.render();
@@ -422,7 +422,7 @@ class AbnoLoadoutMenu extends FormApplication {
       }
     });
     
-    // Botones LOAD
+    // LOAD buttons
     html.find(".loadout-load-btn").on("click", async (event) => {
       event.preventDefault();
       const name = $(event.currentTarget).data("loadout");
@@ -445,7 +445,7 @@ class AbnoLoadoutMenu extends FormApplication {
       }
     });
     
-    // Botones DELETE
+    // DELETE buttons
     html.find(".loadout-delete-btn").on("click", async (event) => {
       event.preventDefault();
       const name = $(event.currentTarget).data("loadout");
@@ -456,7 +456,7 @@ class AbnoLoadoutMenu extends FormApplication {
       
       await game.settings.set("abno-text", "loadouts", loadouts);
       
-      // Si estamos eliminando el loadout activo, volver a default
+      // If deleting the active loadout, revert to default
       if (game.settings.get("abno-text", "activeLoadout") === name) {
         await game.settings.set("abno-text", "activeLoadout", "default");
       }
@@ -467,7 +467,7 @@ class AbnoLoadoutMenu extends FormApplication {
       this.render();
     });
     
-    // Botón RESTORE DEFAULT
+    // RESTORE DEFAULT button
     html.find("#restore-default-btn").on("click", async (event) => {
       event.preventDefault();
       console.log("ABNO: Restore default button clicked");
