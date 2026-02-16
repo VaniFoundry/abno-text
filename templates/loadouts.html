@@ -1,22 +1,49 @@
 <form>
+
   <div class="form-group">
     <label>Loadouts</label>
+
     {{#each loadouts.custom}}
-      <div>
-        <input type="radio" name="activateLoadout" value="{{@key}}" {{#ifEquals ../activeLoadout @key}}checked{{/ifEquals}}>
+      <div style="display:flex; align-items:center; gap:5px; margin-bottom:4px;">
+        <input type="radio"
+               name="activateLoadout"
+               value="{{@key}}"
+               {{#if (eq ../activeLoadout @key)}}checked{{/if}}>
+
         <label>{{@key}}</label>
-        <button type="submit" name="deleteLoadout" value="{{@key}}">Delete</button>
+
+        <button type="submit"
+                name="deleteLoadout"
+                value="{{@key}}">
+          Delete
+        </button>
       </div>
     {{/each}}
+
   </div>
 
-  <div class="form-group">
-    <label>Add New Loadout</label>
-    <input type="text" name="addLoadoutName" placeholder="Loadout Name">
-    <button type="submit" name="addLoadout" value="1">Add</button>
-  </div>
+  <hr>
 
   <div class="form-group">
-    <button type="submit" name="activateLoadout" value="default">Activate Default</button>
+    <label>Add New Loadout (Saves Current Config)</label>
+    <input type="text"
+           name="addLoadoutName"
+           placeholder="Loadout Name">
+    <button type="submit"
+            name="addLoadout"
+            value="1">
+      Save
+    </button>
   </div>
+
+  <hr>
+
+  <div class="form-group">
+    <button type="submit"
+            name="activateLoadout"
+            value="default">
+      Activate Default
+    </button>
+  </div>
+
 </form>

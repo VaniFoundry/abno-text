@@ -1,3 +1,5 @@
+console.log("ABNO TEXT MODULE LOADED");
+
 let intervalId = null;
 let sequenceIndex = 0;
 let activeRects = [];
@@ -30,11 +32,31 @@ Hooks.once("init", () => {
       maxAngle: 25,
       autoScaleLongText: true,
       maxSimultaneous: 3,
-
       outlineEnabled: true,
       outlineColor: "#000000",
       outlineThickness: 3
     }
+  });
+
+  game.settings.register("abno-text", "enabled", {
+    scope: "world",
+    config: false,
+    type: Boolean,
+    default: true
+  });
+
+  game.settings.register("abno-text", "loadouts", {
+    scope: "world",
+    config: false,
+    type: Object,
+    default: { custom: {} }
+  });
+
+  game.settings.register("abno-text", "activeLoadout", {
+    scope: "world",
+    config: false,
+    type: String,
+    default: "default"
   });
 
   game.settings.registerMenu("abno-text", "configMenu", {
@@ -46,9 +68,70 @@ Hooks.once("init", () => {
 
 });
 
+
+/* ---------------------------- */
+/* READY                        */
+/* ---------------------------- */
+
 Hooks.once("ready", () => {
-  startAutoMessages();
+  if (game.settings.get("abno-text", "enabled")) {
+    startAutoMessages();
+  }
 });
+
+
+/* ---------------------------- */
+/* SCENE CONTROLS               */
+/* ---------------------------- */
+
+Hooks.on("getSceneControlButtons", (controls) => {
+
+  console.log("ABNO: Injecting Scene Controls");
+
+  controls["abnoTextControls"] = {
+    name: "abnoTextControls",
+    title: "Abno-Text",
+    icon: "fas fa-comment",
+    visible: game.user.isGM,
+    tools: [
+
+      {
+        name: "loadouts",
+        title: "Abno-Text Loadouts",
+        icon: "fas fa-scroll",
+        button: true,
+        onClick: () => {
+          const menu = new AbnoLoadoutMenu();
+          menu.render(true);
+        }
+      },
+
+      {
+        name: "toggle",
+        title: "Enable / Disable Abno-Text",
+        icon: "fas fa-power-off",
+        toggle: true,
+        active: () => game.settings.get("abno-text", "enabled"),
+        onChange: async (active) => {
+          await game.settings.set("abno-text", "enabled", active);
+
+          if (!active && intervalId) {
+            clearInterval(intervalId);
+            intervalId = null;
+          }
+
+          if (active) startAutoMessages();
+
+          // Refresh scene controls so the toggle reflects the new state
+          if (ui.controls) ui.controls.render();
+        }
+      }
+
+    ]
+  };
+
+});
+
 
 /* ---------------------------- */
 /* MESSAGE PICKING              */
@@ -67,14 +150,15 @@ function getNextMessage() {
   return msg;
 }
 
+
 /* ---------------------------- */
 /* SHOW MESSAGE                 */
 /* ---------------------------- */
 
-export function showAbnoMessage(text) {
-  const config = game.settings.get("abno-text", "config");
+function showAbnoMessage(text) {
+  if (!game.settings.get("abno-text", "enabled")) return;
 
-  // Hard cap on simultaneous messages
+  const config = game.settings.get("abno-text", "config");
   if (activeRects.length >= config.maxSimultaneous) return;
 
   const overlay = $(`<div class="abno-overlay"></div>`);
@@ -95,20 +179,15 @@ export function showAbnoMessage(text) {
     textShadow: config.outlineEnabled ? generateOutline(config) : "none"
   });
 
-  // Put full text temporarily to measure size
   textElement.text(text);
 
-  if (config.autoScaleLongText) {
-    autoScaleText(textElement[0]);
-  }
+  if (config.autoScaleLongText) autoScaleText(textElement[0]);
 
-  // Calculate random rotation BEFORE placement
   let rotationDeg = 0;
   if (config.randomAngle) {
     rotationDeg = (Math.random() * config.maxAngle * 2) - config.maxAngle;
   }
 
-  // Place text taking rotation into account
   const placedRect = placeWithoutOverlap(textElement, rotationDeg);
   if (!placedRect) {
     overlay.remove();
@@ -116,21 +195,15 @@ export function showAbnoMessage(text) {
   }
 
   activeRects.push(placedRect);
-
-  // Apply rotation
   textElement.css("transform", `rotate(${rotationDeg}deg)`);
-
-  // Fade in overlay
   overlay.animate({ opacity: 1 }, 150);
 
-  // Clear text for typing effect
   textElement.text("");
 
   let i = 0;
   const typingInterval = setInterval(() => {
     textElement.text(text.slice(0, i));
     i++;
-
     if (i > text.length) {
       clearInterval(typingInterval);
       startLifetimeTimer(overlay, placedRect, config);
@@ -140,22 +213,23 @@ export function showAbnoMessage(text) {
 
 
 /* ---------------------------- */
-/* PERFECT PLACEMENT SYSTEM     */
+/* PLACEMENT SYSTEM             */
 /* ---------------------------- */
 
 function placeWithoutOverlap(element, rotationDeg = 0) {
-  element[0].offsetWidth; // force layout
+
+  element[0].offsetWidth;
 
   const rect = element[0].getBoundingClientRect();
-  let width = rect.width;
-  let height = rect.height;
-
-  // Convert rotation to radians
   const angle = rotationDeg * Math.PI / 180;
 
-  // Calculate rotated bounding box
-  const rotatedWidth = Math.abs(width * Math.cos(angle)) + Math.abs(height * Math.sin(angle));
-  const rotatedHeight = Math.abs(width * Math.sin(angle)) + Math.abs(height * Math.cos(angle));
+  const rotatedWidth =
+    Math.abs(rect.width * Math.cos(angle)) +
+    Math.abs(rect.height * Math.sin(angle));
+
+  const rotatedHeight =
+    Math.abs(rect.width * Math.sin(angle)) +
+    Math.abs(rect.height * Math.cos(angle));
 
   const maxX = window.innerWidth - rotatedWidth;
   const maxY = window.innerHeight - rotatedHeight;
@@ -165,6 +239,7 @@ function placeWithoutOverlap(element, rotationDeg = 0) {
   let tries = 0;
 
   while (tries < 50) {
+
     const x = Math.random() * maxX;
     const y = Math.random() * maxY;
 
@@ -176,17 +251,12 @@ function placeWithoutOverlap(element, rotationDeg = 0) {
 
     const newRect = element[0].getBoundingClientRect();
 
-    // Check overlap
-    let overlaps = false;
-    for (let r of activeRects) {
-      if (!(newRect.right < r.left ||
-            newRect.left > r.right ||
-            newRect.bottom < r.top ||
-            newRect.top > r.bottom)) {
-        overlaps = true;
-        break;
-      }
-    }
+    const overlaps = activeRects.some(r =>
+      !(newRect.right < r.left ||
+        newRect.left > r.right ||
+        newRect.bottom < r.top ||
+        newRect.top > r.bottom)
+    );
 
     if (!overlaps) return newRect;
 
@@ -221,26 +291,26 @@ function startLifetimeTimer(overlay, rect, config) {
   }, config.duration);
 }
 
+
 /* ---------------------------- */
 /* OUTLINE                      */
 /* ---------------------------- */
 
 function generateOutline(config) {
 
-  const thickness = config.outlineThickness;
-  const color = config.outlineColor;
   const shadows = [];
 
-  for (let x = -thickness; x <= thickness; x++) {
-    for (let y = -thickness; y <= thickness; y++) {
+  for (let x = -config.outlineThickness; x <= config.outlineThickness; x++) {
+    for (let y = -config.outlineThickness; y <= config.outlineThickness; y++) {
       if (x !== 0 || y !== 0) {
-        shadows.push(`${x}px ${y}px 0 ${color}`);
+        shadows.push(`${x}px ${y}px 0 ${config.outlineColor}`);
       }
     }
   }
 
   return shadows.join(",");
 }
+
 
 /* ---------------------------- */
 /* AUTO SCALE                   */
@@ -252,13 +322,14 @@ function autoScaleText(element) {
 
   while (
     (element.scrollWidth > window.innerWidth * 0.95 ||
-     element.scrollHeight > window.innerHeight * 0.95)
-     && size > 12
+     element.scrollHeight > window.innerHeight * 0.95) &&
+    size > 12
   ) {
     size -= 2;
     element.style.fontSize = size + "px";
   }
 }
+
 
 /* ---------------------------- */
 /* AUTO PLAY                    */
@@ -271,6 +342,8 @@ function playNextMessage() {
 
 function startAutoMessages() {
 
+  if (!game.settings.get("abno-text", "enabled")) return;
+
   const config = game.settings.get("abno-text", "config");
 
   if (intervalId) clearInterval(intervalId);
@@ -279,6 +352,7 @@ function startAutoMessages() {
     intervalId = setInterval(playNextMessage, config.frequency * 1000);
   }
 }
+
 
 /* ---------------------------- */
 /* CONFIG FORM                  */
@@ -317,5 +391,69 @@ class AbnoTextConfig extends FormApplication {
 
     sequenceIndex = 0;
     startAutoMessages();
+  }
+}
+
+
+/* ---------------------------- */
+/* LOADOUT MENU                 */
+/* ---------------------------- */
+
+class AbnoLoadoutMenu extends FormApplication {
+
+  static get defaultOptions() {
+    return mergeObject(super.defaultOptions, {
+      id: "abno-loadout-menu",
+      title: "Abno-Text Loadouts",
+      template: "modules/abno-text/templates/loadouts.html",
+      width: 500
+    });
+  }
+
+  getData() {
+    return {
+      loadouts: game.settings.get("abno-text", "loadouts"),
+      activeLoadout: game.settings.get("abno-text", "activeLoadout")
+    };
+  }
+
+  async _updateObject(event, formData) {
+
+    const loadouts = foundry.utils.duplicate(
+      game.settings.get("abno-text", "loadouts")
+    );
+
+    const currentConfig = game.settings.get("abno-text", "config");
+
+    if (formData.addLoadout) {
+      const name = formData.addLoadoutName?.trim();
+      if (name) {
+        loadouts.custom[name] = currentConfig;
+        await game.settings.set("abno-text", "loadouts", loadouts);
+      }
+    }
+
+    if (formData.deleteLoadout) {
+      delete loadouts.custom[formData.deleteLoadout];
+      await game.settings.set("abno-text", "loadouts", loadouts);
+    }
+
+    if (formData.activateLoadout) {
+
+      if (formData.activateLoadout === "default") {
+        await game.settings.set("abno-text", "activeLoadout", "default");
+      } else {
+        const selected = loadouts.custom[formData.activateLoadout];
+        if (selected) {
+          await game.settings.set("abno-text", "config", selected);
+          await game.settings.set("abno-text", "activeLoadout", formData.activateLoadout);
+        }
+      }
+
+      sequenceIndex = 0;
+      startAutoMessages();
+    }
+
+    this.render();
   }
 }
