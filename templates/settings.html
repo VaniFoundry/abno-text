@@ -1,99 +1,437 @@
-<form>
+<style>
+  /* ── Scoped to this window only ── */
+  #abno-text-config .window-content {
+    background: linear-gradient(135deg, #1a1a1a 0%, #2d2520 100%) !important;
+    padding: 12px 16px !important;
+  }
 
-  <div class="form-group">
-    <label>Messages (one per line)</label>
-    <textarea name="messages" rows="6">{{#each messages}}{{this}}
+  #abno-text-config .abno-cfg-container,
+  #abno-text-config .abno-cfg-container * {
+    box-sizing: border-box;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif !important;
+  }
+
+  #abno-text-config .abno-cfg-container {
+    color: #E8D4B0 !important;
+  }
+
+  #abno-text-config .abno-cfg-header {
+    color: #D4AF37 !important;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    font-weight: bold !important;
+    font-size: 11px !important;
+    margin-bottom: 12px !important;
+    margin-top: 0 !important;
+    padding-bottom: 8px !important;
+    border-bottom: 1px solid #5d4a3a !important;
+    background: transparent !important;
+  }
+
+  #abno-text-config .abno-cfg-divider {
+    height: 1px !important;
+    background: #5d4a3a !important;
+    margin: 16px 0 !important;
+    border: none !important;
+  }
+
+  #abno-text-config .abno-cfg-section {
+    margin-bottom: 16px !important;
+  }
+
+  #abno-text-config .abno-cfg-row {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    margin-bottom: 8px !important;
+    gap: 12px !important;
+  }
+
+  #abno-text-config .abno-cfg-container label,
+  #abno-text-config .abno-cfg-row label {
+    color: #E8D4B0 !important;
+    font-size: 12px !important;
+    font-weight: 600 !important;
+    letter-spacing: 0.4px !important;
+    flex: 1 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    text-shadow: none !important;
+    background: transparent !important;
+  }
+
+  #abno-text-config .abno-cfg-hint {
+    font-size: 10px !important;
+    color: #8B7355 !important;
+    margin-top: -4px !important;
+    margin-bottom: 10px !important;
+    font-style: italic !important;
+  }
+
+  #abno-text-config .abno-cfg-textarea {
+    width: 100% !important;
+    display: block !important;
+    margin-top: 6px !important;
+    resize: vertical !important;
+    background: #111111 !important;
+    border: 1px solid #5d4a3a !important;
+    color: #E8D4B0 !important;
+    padding: 8px 10px !important;
+    font-size: 12px !important;
+    line-height: 1.5 !important;
+    border-radius: 0 !important;
+  }
+
+  #abno-text-config .abno-cfg-textarea:focus {
+    outline: none !important;
+    border-color: #D4AF37 !important;
+  }
+
+  #abno-text-config .abno-cfg-textarea::placeholder {
+    color: #5d4a3a !important;
+    font-style: italic !important;
+  }
+
+  #abno-text-config .abno-cfg-input {
+    background: #111111 !important;
+    border: 1px solid #5d4a3a !important;
+    color: #E8D4B0 !important;
+    padding: 5px 8px !important;
+    font-size: 12px !important;
+    border-radius: 0 !important;
+    flex: 0.7 !important;
+    min-width: 0 !important;
+    text-align: right !important;
+    height: auto !important;
+  }
+
+  #abno-text-config .abno-cfg-input:focus {
+    outline: none !important;
+    border-color: #D4AF37 !important;
+    box-shadow: none !important;
+  }
+
+  #abno-text-config .abno-cfg-color-swatch {
+    flex: 0 0 36px !important;
+    height: 28px !important;
+    padding: 2px 3px !important;
+    border: 1px solid #5d4a3a !important;
+    background: #111111 !important;
+    cursor: pointer !important;
+    border-radius: 0 !important;
+  }
+
+  #abno-text-config .abno-cfg-color-hex {
+    flex: 1 !important;
+    background: #111111 !important;
+    border: 1px solid #5d4a3a !important;
+    color: #E8D4B0 !important;
+    padding: 5px 8px !important;
+    font-size: 11px !important;
+    font-family: monospace !important;
+    text-align: left !important;
+    border-radius: 0 !important;
+    height: auto !important;
+  }
+
+  #abno-text-config .abno-cfg-color-hex:focus {
+    outline: none !important;
+    border-color: #D4AF37 !important;
+    box-shadow: none !important;
+  }
+
+  #abno-text-config .abno-cfg-color-row {
+    display: flex !important;
+    align-items: center !important;
+    gap: 6px !important;
+    flex: 0.9 !important;
+  }
+
+  #abno-text-config .abno-cfg-select {
+    background: #111111 !important;
+    border: 1px solid #5d4a3a !important;
+    color: #E8D4B0 !important;
+    padding: 5px 28px 5px 8px !important;
+    font-size: 12px !important;
+    border-radius: 0 !important;
+    flex: 1.2 !important;
+    cursor: pointer !important;
+    appearance: none !important;
+    -webkit-appearance: none !important;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%238B7355'/%3E%3C/svg%3E") !important;
+    background-repeat: no-repeat !important;
+    background-position: right 10px center !important;
+    height: auto !important;
+  }
+
+  #abno-text-config .abno-cfg-select:focus {
+    outline: none !important;
+    border-color: #D4AF37 !important;
+    box-shadow: none !important;
+  }
+
+  #abno-text-config .abno-cfg-select option {
+    background: #1a1a1a !important;
+    color: #E8D4B0 !important;
+  }
+
+  /* Custom font row — hidden until user picks "Custom..." */
+  #abno-text-config .abno-cfg-custom-font-row {
+    display: none !important;
+    margin-bottom: 8px !important;
+    gap: 12px !important;
+    align-items: center !important;
+  }
+
+  #abno-text-config .abno-cfg-custom-font-row.visible {
+    display: flex !important;
+  }
+
+  #abno-text-config .abno-cfg-custom-font-input {
+    background: #111111 !important;
+    border: 1px solid #D4AF37 !important;
+    color: #E8D4B0 !important;
+    padding: 5px 8px !important;
+    font-size: 12px !important;
+    border-radius: 0 !important;
+    flex: 1.2 !important;
+    min-width: 0 !important;
+    height: auto !important;
+  }
+
+  #abno-text-config .abno-cfg-custom-font-input:focus {
+    outline: none !important;
+    border-color: #E8D4B0 !important;
+    box-shadow: none !important;
+  }
+
+  #abno-text-config .abno-cfg-custom-font-input::placeholder {
+    color: #5d4a3a !important;
+    font-style: italic !important;
+  }
+
+  #abno-text-config .abno-cfg-checkbox {
+    flex: 0 0 auto !important;
+    width: 16px !important;
+    height: 16px !important;
+    accent-color: #D4AF37 !important;
+    cursor: pointer !important;
+    margin: 0 !important;
+  }
+
+  #abno-text-config .abno-cfg-footer {
+    margin-top: 20px !important;
+  }
+
+  #abno-text-config .abno-cfg-btn-submit {
+    width: 100% !important;
+    padding: 10px !important;
+    border: 1px solid #5d7a4a !important;
+    background: #3d5a2f !important;
+    color: #E8D4B0 !important;
+    font-size: 11px !important;
+    font-weight: 600 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 1px !important;
+    cursor: pointer !important;
+    border-radius: 2px !important;
+  }
+
+  #abno-text-config .abno-cfg-btn-submit:hover {
+    border-color: #7DA36B !important;
+    color: #7DA36B !important;
+  }
+</style>
+
+<form class="abno-cfg-container">
+
+  <!-- MESSAGES -->
+  <div class="abno-cfg-section">
+    <div class="abno-cfg-header">Messages</div>
+
+    <label style="color:#E8D4B0 !important; font-size:12px; font-weight:600; display:block;">Message List</label>
+    <textarea name="messages" class="abno-cfg-textarea" rows="6"
+              placeholder="One message per line...">{{#each messages}}{{this}}
 {{/each}}</textarea>
+    <div class="abno-cfg-hint">Each line is one message. They display in order, or randomly if Random Mode is on.</div>
+
+    <div class="abno-cfg-row">
+      <label>Random Mode</label>
+      <input type="checkbox" name="randomMode" class="abno-cfg-checkbox" {{#if randomMode}}checked{{/if}}>
+    </div>
   </div>
 
-  <div class="form-group">
-    <label>Duration (ms)</label>
-    <input type="number" name="duration" value="{{duration}}">
+  <div class="abno-cfg-divider"></div>
+
+  <!-- TIMING -->
+  <div class="abno-cfg-section">
+    <div class="abno-cfg-header">Timing</div>
+
+    <div class="abno-cfg-row">
+      <label>Display Duration (ms)</label>
+      <input type="number" name="duration" class="abno-cfg-input" value="{{duration}}">
+    </div>
+    <div class="abno-cfg-row">
+      <label>Fade Out Time (ms)</label>
+      <input type="number" name="fadeOutTime" class="abno-cfg-input" value="{{fadeOutTime}}">
+    </div>
+    <div class="abno-cfg-row">
+      <label>Auto Frequency (seconds)</label>
+      <input type="number" name="frequency" class="abno-cfg-input" value="{{frequency}}">
+    </div>
+    <div class="abno-cfg-hint">Set to 0 to disable automatic cycling.</div>
+    <div class="abno-cfg-row">
+      <label>Typing Speed (ms per letter)</label>
+      <input type="number" name="typingSpeed" class="abno-cfg-input" value="{{typingSpeed}}">
+    </div>
+    <div class="abno-cfg-row">
+      <label>Max Simultaneous Messages</label>
+      <input type="number" name="maxSimultaneous" class="abno-cfg-input" value="{{maxSimultaneous}}">
+    </div>
   </div>
 
-  <div class="form-group">
-    <label>Fade Out Time (ms)</label>
-    <input type="number" name="fadeOutTime" value="{{fadeOutTime}}">
+  <div class="abno-cfg-divider"></div>
+
+  <!-- APPEARANCE -->
+  <div class="abno-cfg-section">
+    <div class="abno-cfg-header">Appearance</div>
+
+    <div class="abno-cfg-row">
+      <label>Font Size (px)</label>
+      <input type="number" name="fontSize" class="abno-cfg-input" value="{{fontSize}}">
+    </div>
+
+    <div class="abno-cfg-row">
+      <label>Font Color</label>
+      <div class="abno-cfg-color-row">
+        <input type="color" name="color" class="abno-cfg-color-swatch" value="{{color}}"
+               oninput="this.nextElementSibling.value=this.value">
+        <input type="text" class="abno-cfg-color-hex" value="{{color}}"
+               placeholder="#ff3333"
+               oninput="this.previousElementSibling.value=this.value">
+      </div>
+    </div>
+
+    <div class="abno-cfg-row">
+      <label>Font Family</label>
+      <select name="fontFamilyPreset" id="abno-font-preset" class="abno-cfg-select"
+              onchange="
+                var customRow = document.getElementById('abno-custom-font-row');
+                var customInput = document.getElementById('abno-custom-font-input');
+                var hidden = document.getElementById('abno-font-family-value');
+                if (this.value === '__custom__') {
+                  customRow.classList.add('visible');
+                  customInput.focus();
+                  hidden.value = customInput.value || '';
+                } else {
+                  customRow.classList.remove('visible');
+                  hidden.value = this.value;
+                }
+              ">
+        <option value="serif"            {{#if (eq fontFamily "serif")            }}selected{{/if}}>Serif</option>
+        <option value="sans-serif"       {{#if (eq fontFamily "sans-serif")       }}selected{{/if}}>Sans-Serif</option>
+        <option value="monospace"        {{#if (eq fontFamily "monospace")        }}selected{{/if}}>Monospace</option>
+        <option value="Signika"          {{#if (eq fontFamily "Signika")          }}selected{{/if}}>Signika (Foundry UI)</option>
+        <option value="Modesto Condensed"{{#if (eq fontFamily "Modesto Condensed")}}selected{{/if}}>Modesto Condensed</option>
+        <option value="Bruno Ace SC"     {{#if (eq fontFamily "Bruno Ace SC")     }}selected{{/if}}>Bruno Ace SC</option>
+        <option value="Cinzel"           {{#if (eq fontFamily "Cinzel")           }}selected{{/if}}>Cinzel</option>
+        <option value="Cinzel Decorative"{{#if (eq fontFamily "Cinzel Decorative")}}selected{{/if}}>Cinzel Decorative</option>
+        <option value="Uncial Antiqua"   {{#if (eq fontFamily "Uncial Antiqua")   }}selected{{/if}}>Uncial Antiqua</option>
+        <option value="Crimson Text"     {{#if (eq fontFamily "Crimson Text")     }}selected{{/if}}>Crimson Text</option>
+        <option value="IM Fell English"  {{#if (eq fontFamily "IM Fell English")  }}selected{{/if}}>IM Fell English</option>
+        <option value="Creepster"        {{#if (eq fontFamily "Creepster")        }}selected{{/if}}>Creepster</option>
+        <option value="Metal Mania"      {{#if (eq fontFamily "Metal Mania")      }}selected{{/if}}>Metal Mania</option>
+        <option value="__custom__">&#9998; Custom font...</option>
+      </select>
+    </div>
+
+    <!-- Shown only when Custom is selected -->
+    <div class="abno-cfg-custom-font-row" id="abno-custom-font-row">
+      <label>Font Name</label>
+      <input type="text"
+             id="abno-custom-font-input"
+             class="abno-cfg-custom-font-input"
+             placeholder="e.g. Roboto, Pirata One, Arial..."
+             oninput="document.getElementById('abno-font-family-value').value = this.value">
+    </div>
+
+    <!-- Hidden input — this is what actually gets saved as fontFamily -->
+    <input type="hidden" name="fontFamily" id="abno-font-family-value" value="{{fontFamily}}">
+
+    <div class="abno-cfg-hint">Built-ins always work. Others need internet or a font module (e.g. "Fonty"). Custom lets you type any font name.</div>
+
+    <div class="abno-cfg-row">
+      <label>Auto Scale Long Text</label>
+      <input type="checkbox" name="autoScaleLongText" class="abno-cfg-checkbox" {{#if autoScaleLongText}}checked{{/if}}>
+    </div>
   </div>
 
-  <div class="form-group">
-    <label>Auto Frequency (seconds, 0 = off)</label>
-    <input type="number" name="frequency" value="{{frequency}}">
+  <div class="abno-cfg-divider"></div>
+
+  <!-- POSITION & ROTATION -->
+  <div class="abno-cfg-section">
+    <div class="abno-cfg-header">Position &amp; Rotation</div>
+
+    <div class="abno-cfg-row">
+      <label>Random Angle</label>
+      <input type="checkbox" name="randomAngle" class="abno-cfg-checkbox" {{#if randomAngle}}checked{{/if}}>
+    </div>
+    <div class="abno-cfg-row">
+      <label>Max Angle (degrees)</label>
+      <input type="number" name="maxAngle" class="abno-cfg-input" value="{{maxAngle}}">
+    </div>
   </div>
 
-  <hr>
+  <div class="abno-cfg-divider"></div>
 
-  <div class="form-group">
-    <label>Font Size</label>
-    <input type="number" name="fontSize" value="{{fontSize}}">
+  <!-- OUTLINE -->
+  <div class="abno-cfg-section">
+    <div class="abno-cfg-header">Outline</div>
+
+    <div class="abno-cfg-row">
+      <label>Enable Outline</label>
+      <input type="checkbox" name="outlineEnabled" class="abno-cfg-checkbox" {{#if outlineEnabled}}checked{{/if}}>
+    </div>
+
+    <div class="abno-cfg-row">
+      <label>Outline Color</label>
+      <div class="abno-cfg-color-row">
+        <input type="color" name="outlineColor" class="abno-cfg-color-swatch" value="{{outlineColor}}"
+               oninput="this.nextElementSibling.value=this.value">
+        <input type="text" class="abno-cfg-color-hex" value="{{outlineColor}}"
+               placeholder="#000000"
+               oninput="this.previousElementSibling.value=this.value">
+      </div>
+    </div>
+
+    <div class="abno-cfg-row">
+      <label>Outline Thickness (px)</label>
+      <input type="number" name="outlineThickness" class="abno-cfg-input" value="{{outlineThickness}}">
+    </div>
   </div>
 
-  <div class="form-group">
-    <label>Font Color</label>
-    <input type="color" name="color" value="{{color}}">
+  <!-- FOOTER -->
+  <div class="abno-cfg-footer">
+    <button type="submit" class="abno-cfg-btn-submit">Save Configuration</button>
   </div>
-
-  <div class="form-group">
-    <label>Font Family</label>
-    <input type="text" name="fontFamily" value="{{fontFamily}}">
-  </div>
-
-  <div class="form-group">
-    <label>Typing Speed (ms per letter)</label>
-    <input type="number" name="typingSpeed" value="{{typingSpeed}}">
-  </div>
-
-  <hr>
-
-  <div class="form-group">
-    <label>Random Mode</label>
-    <input type="checkbox" name="randomMode" {{#if randomMode}}checked{{/if}}>
-  </div>
-
-  <div class="form-group">
-    <label>Random Position</label>
-    <input type="checkbox" name="randomPosition" {{#if randomPosition}}checked{{/if}}>
-  </div>
-
-  <div class="form-group">
-    <label>Random Angle</label>
-    <input type="checkbox" name="randomAngle" {{#if randomAngle}}checked{{/if}}>
-  </div>
-
-  <div class="form-group">
-    <label>Max Angle</label>
-    <input type="number" name="maxAngle" value="{{maxAngle}}">
-  </div>
-
-  <div class="form-group">
-    <label>Max Simultaneous</label>
-    <input type="number" name="maxSimultaneous" value="{{maxSimultaneous}}">
-  </div>
-
-  <hr>
-
-  <div class="form-group">
-    <label>Enable Outline</label>
-    <input type="checkbox" name="outlineEnabled" {{#if outlineEnabled}}checked{{/if}}>
-  </div>
-
-  <div class="form-group">
-    <label>Outline Color</label>
-    <input type="color" name="outlineColor" value="{{outlineColor}}">
-  </div>
-
-  <div class="form-group">
-    <label>Outline Thickness</label>
-    <input type="number" name="outlineThickness" value="{{outlineThickness}}">
-  </div>
-
-  <div class="form-group">
-    <label>Auto Scale Long Text</label>
-    <input type="checkbox" name="autoScaleLongText" {{#if autoScaleLongText}}checked{{/if}}>
-  </div>
-
-  <footer class="sheet-footer flexrow">
-    <button type="submit">Save</button>
-  </footer>
 
 </form>
+
+<script>
+  // On open: if the saved fontFamily is not in the dropdown, switch to Custom and pre-fill the input
+  (function() {
+    var preset      = document.getElementById("abno-font-preset");
+    var customRow   = document.getElementById("abno-custom-font-row");
+    var customInput = document.getElementById("abno-custom-font-input");
+    var hidden      = document.getElementById("abno-font-family-value");
+
+    var knownValues = Array.from(preset.options).map(function(o) { return o.value; });
+    var saved = hidden.value;
+
+    if (saved && !knownValues.includes(saved)) {
+      preset.value = "__custom__";
+      customInput.value = saved;
+      customRow.classList.add("visible");
+    }
+  })();
+</script>
