@@ -97,88 +97,104 @@ Hooks.once("ready", () => {
 
 
 /* ---------------------------- */
-/* SCENE CONTROLS (V13 FIXED)   */
+/* SCENE CONTROLS               */
+/* Compatible with v11 and v13  */
 /* ---------------------------- */
 Hooks.on("getSceneControlButtons", (controls) => {
   console.log("ABNO: getSceneControlButtons hook fired");
-  
+
   if (!game.user.isGM) {
     console.log("ABNO: User is not GM, skipping");
     return;
   }
 
-  // Create our own control group
-  controls.abnoText = {
-    name: "abnoText",
-    title: "Abno Text",
-    icon: "fas fa-comment",
-    visible: true,
-    layer: "controls",
-    activeTool: "select",
-    tools: {
-      // Selection tool (required)
-      select: {
-        name: "select",
-        title: "Abno Text Controls",
-        icon: "fas fa-comment"
-      },
-      // Toggle Enable/Disable - FIXED
-      toggle: {
-        name: "toggle",
-        title: game.settings.get("abno-text", "enabled") ? "Disable Abno-Text" : "Enable Abno-Text",
-        icon: "fas fa-power-off",
-        toggle: true,
-        active: game.settings.get("abno-text", "enabled"),
-        onClick: async () => {
-          // Invert current state
-          const currentState = game.settings.get("abno-text", "enabled");
-          const newState = !currentState;
-          
-          console.log("ABNO: Toggle clicked, changing from", currentState, "to", newState);
-          
-          await game.settings.set("abno-text", "enabled", newState);
-          
-          if (!newState && intervalId) {
-            clearInterval(intervalId);
-            intervalId = null;
-            console.log("ABNO: Auto messages stopped");
-          }
-          if (newState) {
-            startAutoMessages();
-            console.log("ABNO: Auto messages started");
-          }
-          
-          // Update UI
-          ui.controls.render();
-          ui.notifications.info(`Abno-Text ${newState ? "Enabled" : "Disabled"}`);
-        }
-      },
-      // Loadouts menu
-      loadouts: {
-        name: "loadouts",
-        title: "Open Abno-Text Loadouts",
-        icon: "fas fa-scroll",
-        button: true,
-        onClick: () => {
-          console.log("ABNO: Loadouts button clicked");
-          new AbnoLoadoutMenu().render(true);
-        }
-      },
-      // Config menu
-      config: {
-        name: "config",
-        title: "Open Abno-Text Configuration",
-        icon: "fas fa-cog",
-        button: true,
-        onClick: () => {
-          console.log("ABNO: Config button clicked");
-          new AbnoTextConfig().render(true);
-        }
+  // v11 passes an Array; v13 passes a plain Object.
+  const isV11 = Array.isArray(controls);
+
+  // ---- shared tool definitions ----
+  const toolToggle = {
+    name: "toggle",
+    title: game.settings.get("abno-text", "enabled") ? "Disable Abno-Text" : "Enable Abno-Text",
+    icon: "fas fa-power-off",
+    toggle: true,
+    active: game.settings.get("abno-text", "enabled"),
+    onClick: async () => {
+      const currentState = game.settings.get("abno-text", "enabled");
+      const newState = !currentState;
+      console.log("ABNO: Toggle clicked, changing from", currentState, "to", newState);
+      await game.settings.set("abno-text", "enabled", newState);
+      if (!newState && intervalId) {
+        clearInterval(intervalId);
+        intervalId = null;
+        console.log("ABNO: Auto messages stopped");
       }
+      if (newState) {
+        startAutoMessages();
+        console.log("ABNO: Auto messages started");
+      }
+      ui.controls.render();
+      ui.notifications.info(`Abno-Text ${newState ? "Enabled" : "Disabled"}`);
     }
   };
-  
-  console.log("ABNO: Control group added successfully");
+
+  const toolLoadouts = {
+    name: "loadouts",
+    title: "Open Abno-Text Loadouts",
+    icon: "fas fa-scroll",
+    button: true,
+    onClick: () => {
+      console.log("ABNO: Loadouts button clicked");
+      new AbnoLoadoutMenu().render(true);
+    }
+  };
+
+  const toolConfig = {
+    name: "config",
+    title: "Open Abno-Text Configuration",
+    icon: "fas fa-cog",
+    button: true,
+    onClick: () => {
+      console.log("ABNO: Config button clicked");
+      new AbnoTextConfig().render(true);
+    }
+  };
+
+  if (isV11) {
+    // v11: controls is an Array — push a new group with a tools Array
+    controls.push({
+      name: "abnoText",
+      title: "Abno Text",
+      icon: "fas fa-comment",
+      visible: true,
+      layer: "controls",
+      activeTool: "select",
+      tools: [
+        // v11 requires a default "select" tool as the first entry
+        { name: "select", title: "Abno Text Controls", icon: "fas fa-comment" },
+        toolToggle,
+        toolLoadouts,
+        toolConfig
+      ]
+    });
+  } else {
+    // v13: controls is an Object — assign a new key with a tools Object
+    controls.abnoText = {
+      name: "abnoText",
+      title: "Abno Text",
+      icon: "fas fa-comment",
+      visible: true,
+      layer: "controls",
+      activeTool: "select",
+      tools: {
+        select: { name: "select", title: "Abno Text Controls", icon: "fas fa-comment" },
+        toggle: toolToggle,
+        loadouts: toolLoadouts,
+        config: toolConfig
+      }
+    };
+  }
+
+  console.log("ABNO: Control group added successfully (v11 mode:", isV11, ")");
 });
 
 
