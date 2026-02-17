@@ -17,7 +17,7 @@ Hooks.once("init", () => {
       duration: 4000,
       fadeOutTime: 600,
       frequency: 0,
-      fontSize: 64,
+      fontSize: 40,
       color: "#ff3333",
       fontFamily: "serif",
       typingSpeed: 40,

@@ -10,7 +10,7 @@
   "flags": {
     "canUpload": true
   },
-  "esmodules": ["module.js"],
+  "esmodules": ["abnotext.js"],
   "styles": ["styles.css"],
   "manifest": "",
   "download": "",
