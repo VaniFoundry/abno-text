@@ -5,6 +5,31 @@ let sequenceIndex = 0;
 let activeRects = [];
 
 /* ---------------------------- */
+/* MESSAGE QUEUE                */
+/* ---------------------------- */
+let messageQueue = [];
+let isProcessingQueue = false;
+
+function enqueueMessage(text) {
+  messageQueue.push(text);
+  if (!isProcessingQueue) processQueue();
+}
+
+function processQueue() {
+  if (messageQueue.length === 0) {
+    isProcessingQueue = false;
+    return;
+  }
+  isProcessingQueue = true;
+  const text = messageQueue.shift();
+  const config = game.settings.get("abno-text", "config");
+  const totalDuration = config.duration + config.fadeOutTime;
+
+  showAbnoMessage(text);
+  setTimeout(processQueue, totalDuration);
+}
+
+/* ---------------------------- */
 /* SETTINGS                     */
 /* ---------------------------- */
 Hooks.once("init", () => {
@@ -16,19 +41,19 @@ Hooks.once("init", () => {
       messages: ["Default text...", "Default second line of text.", "Third line of default text."],
       duration: 2000,
       fadeOutTime: 500,
-      frequency: 3,
+      frequency: 5,
       fontSize: 25,
       color: "#ff3333",
       fontFamily: "serif",
-      typingSpeed: 30,
+      typingSpeed: 75,
       randomMode: false,
       randomAngle: true,
-      maxAngle: 25,
+      maxAngle: 30,
       autoScaleLongText: true,
       maxSimultaneous: 3,
       outlineEnabled: true,
       outlineColor: "#000000",
-      outlineThickness: 3
+      outlineThickness: 2
     }
   });
 
@@ -68,11 +93,10 @@ Hooks.once("init", () => {
   // ----------------------------
   // SOCKET COMMUNICATION SETUP
   // ----------------------------
-  // Register socket handler to receive broadcasted messages from GM
+  // Players receive broadcasted messages from GM via socket
   game.socket.on("module.abno-text", (data) => {
-    //console.log("ABNO: Received broadcast message:", data.message);
     if (data.message) {
-      showAbnoMessage(data.message);
+      enqueueMessage(data.message);
     }
   });
   
@@ -84,7 +108,6 @@ Hooks.once("init", () => {
 /* READY                        */
 /* ---------------------------- */
 Hooks.once("ready", () => {
-  // Only start auto-messages if user is GM
   if (game.user.isGM && game.settings.get("abno-text", "enabled")) {
     startAutoMessages();
     console.log("ABNO: Module ready, GM mode enabled =", game.settings.get("abno-text", "enabled"));
@@ -108,10 +131,8 @@ Hooks.on("getSceneControlButtons", (controls) => {
     return;
   }
 
-  // v11 passes an Array; v13 passes a plain Object.
   const isV11 = Array.isArray(controls);
 
-  // ---- shared tool definitions ----
   const toolToggle = {
     name: "toggle",
     title: game.settings.get("abno-text", "enabled") ? "Disable Abno-Text" : "Enable Abno-Text",
@@ -160,7 +181,6 @@ Hooks.on("getSceneControlButtons", (controls) => {
   };
 
   if (isV11) {
-    // v11: controls is an Array — push a new group with a tools Array
     controls.push({
       name: "abnoText",
       title: "Abno Text",
@@ -169,7 +189,6 @@ Hooks.on("getSceneControlButtons", (controls) => {
       layer: "controls",
       activeTool: "select",
       tools: [
-        // v11 requires a default "select" tool as the first entry
         { name: "select", title: "Abno Text Controls", icon: "fas fa-comment" },
         toolToggle,
         toolLoadouts,
@@ -177,7 +196,6 @@ Hooks.on("getSceneControlButtons", (controls) => {
       ]
     });
   } else {
-    // v13: controls is an Object — assign a new key with a tools Object
     controls.abnoText = {
       name: "abnoText",
       title: "Abno Text",
@@ -205,8 +223,12 @@ function getNextMessage() {
   const config = game.settings.get("abno-text", "config");
   if (!config.messages.length) return null;
   if (config.randomMode) return config.messages[Math.floor(Math.random() * config.messages.length)];
-  const msg = config.messages[sequenceIndex];
+  
+  const index = sequenceIndex;
+  const msg = config.messages[index];
   sequenceIndex = (sequenceIndex + 1) % config.messages.length;
+  
+  console.log("ABNO: getNextMessage called, returning index", index, "=", msg);
   return msg;
 }
 
@@ -313,13 +335,13 @@ function autoScaleText(element) {
 function playNextMessage() {
   const msg = getNextMessage();
   if (msg) {
-    // If user is GM, broadcast the message to all clients
     if (game.user.isGM) {
+      // Show locally for GM via queue
+      enqueueMessage(msg);
+      // Broadcast to players (they also use enqueueMessage via socket handler)
       game.socket.emit("module.abno-text", { message: msg });
       console.log("ABNO: Broadcasted message to all clients:", msg);
     }
-    // GM also shows the message locally
-    showAbnoMessage(msg);
   }
 }
 
@@ -365,6 +387,9 @@ class AbnoTextConfig extends FormApplication {
     
     await game.settings.set("abno-text", "config", data);
     sequenceIndex = 0;
+    // Reset queue when config changes
+    messageQueue = [];
+    isProcessingQueue = false;
     startAutoMessages();
     
     ui.notifications.info("Abno-Text configuration saved!");
@@ -373,7 +398,7 @@ class AbnoTextConfig extends FormApplication {
 }
 
 /* ---------------------------- */
-/* LOADOUT MENU - FIXED         */
+/* LOADOUT MENU                 */
 /* ---------------------------- */
 class AbnoLoadoutMenu extends FormApplication {
   static get defaultOptions() {
@@ -392,7 +417,6 @@ class AbnoLoadoutMenu extends FormApplication {
     const loadouts = game.settings.get("abno-text", "loadouts");
     const activeLoadout = game.settings.get("abno-text", "activeLoadout");
     
-    // Ensure loadouts.custom exists
     if (!loadouts.custom) {
       loadouts.custom = {};
     }
@@ -429,9 +453,7 @@ class AbnoLoadoutMenu extends FormApplication {
         ui.notifications.info(`Loadout "${name}" saved!`);
         console.log("ABNO: Loadout saved successfully");
         
-        // Clear input
         html.find("#loadout-name-input").val("");
-        
         this.render();
       } else {
         ui.notifications.warn("Please enter a loadout name");
@@ -451,6 +473,9 @@ class AbnoLoadoutMenu extends FormApplication {
         await game.settings.set("abno-text", "config", foundry.utils.duplicate(selected));
         await game.settings.set("abno-text", "activeLoadout", name);
         sequenceIndex = 0;
+        // Reset queue on loadout change
+        messageQueue = [];
+        isProcessingQueue = false;
         startAutoMessages();
         ui.notifications.info(`Loadout "${name}" activated!`);
         console.log("ABNO: Loadout activated successfully");
@@ -472,7 +497,6 @@ class AbnoLoadoutMenu extends FormApplication {
       
       await game.settings.set("abno-text", "loadouts", loadouts);
       
-      // If deleting the active loadout, revert to default
       if (game.settings.get("abno-text", "activeLoadout") === name) {
         await game.settings.set("abno-text", "activeLoadout", "default");
       }
