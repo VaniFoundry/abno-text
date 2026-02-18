@@ -23,7 +23,10 @@ function processQueue() {
   isProcessingQueue = true;
   const text = messageQueue.shift();
   const config = game.settings.get("abno-text", "config");
-  const totalDuration = config.duration + config.fadeOutTime;
+
+  // Total time = typing animation + display duration + fade out
+  const typingTime = (text.length + 1) * config.typingSpeed;
+  const totalDuration = typingTime + config.duration + config.fadeOutTime;
 
   showAbnoMessage(text);
   setTimeout(processQueue, totalDuration);
