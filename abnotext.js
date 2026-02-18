@@ -53,7 +53,9 @@ Hooks.once("init", () => {
       maxSimultaneous: 3,
       outlineEnabled: true,
       outlineColor: "#000000",
-      outlineThickness: 2
+      outlineThickness: 2,
+      shakeyText: false,
+      shakeIntensity: 0
     }
   });
 
@@ -267,13 +269,20 @@ function showAbnoMessage(text) {
   overlay.animate({ opacity: 1 }, 150);
 
   textElement.text("");
+
+  // Start shaking immediately when typing begins (if enabled)
+  let stopShake = null;
+  if (config.shakeyText) {
+    stopShake = startShake(textElement[0], rotationDeg, config.shakeIntensity);
+  }
+
   let i = 0;
   const typingInterval = setInterval(() => {
     textElement.text(text.slice(0, i));
     i++;
     if (i > text.length) {
       clearInterval(typingInterval);
-      startLifetimeTimer(overlay, placedRect, config);
+      startLifetimeTimer(overlay, placedRect, config, stopShake);
     }
   }, config.typingSpeed);
 }
@@ -305,8 +314,9 @@ function placeWithoutOverlap(element, rotationDeg = 0) {
   return null;
 }
 
-function startLifetimeTimer(overlay, rect, config) {
+function startLifetimeTimer(overlay, rect, config, stopShake = null) {
   setTimeout(() => {
+    if (stopShake) stopShake();
     overlay.fadeOut(config.fadeOutTime, () => {
       activeRects = activeRects.filter(r => !(r.left === rect.left && r.top === rect.top && r.right === rect.right && r.bottom === rect.bottom));
       overlay.remove();
@@ -330,6 +340,33 @@ function autoScaleText(element) {
     size -= 2;
     element.style.fontSize = size + "px";
   }
+}
+
+/* ---------------------------- */
+/* SHAKY TEXT                   */
+/* ---------------------------- */
+function startShake(element, rotationDeg, intensity) {
+  let rafId = null;
+
+  // Scale intensity exponentially so higher values feel dramatically more violent
+  const t = intensity / 10;
+  const scaledTranslate = 2 + (t * t) * 60;   // range: ~2px at 1, up to 62px at 10
+  const scaledRotate    = 0.2 + (t * t) * 20;  // range: ~0.2deg at 1, up to 20deg at 10
+
+  function shake() {
+    const dx = (Math.random() - 0.5) * scaledTranslate * 2;
+    const dy = (Math.random() - 0.5) * scaledTranslate * 2;
+    const dr = (Math.random() - 0.5) * scaledRotate * 2;
+    element.style.transform = `rotate(${rotationDeg + dr}deg) translate(${dx}px, ${dy}px)`;
+    rafId = requestAnimationFrame(shake);
+  }
+
+  rafId = requestAnimationFrame(shake);
+
+  return function stopShake() {
+    if (rafId) cancelAnimationFrame(rafId);
+    element.style.transform = `rotate(${rotationDeg}deg)`;
+  };
 }
 
 function playNextMessage() {
@@ -384,6 +421,7 @@ class AbnoTextConfig extends FormApplication {
     data.randomAngle = !!formData.randomAngle;
     data.autoScaleLongText = !!formData.autoScaleLongText;
     data.outlineEnabled = !!formData.outlineEnabled;
+    data.shakeyText = !!formData.shakeyText;
     
     await game.settings.set("abno-text", "config", data);
     sequenceIndex = 0;

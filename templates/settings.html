@@ -410,6 +410,23 @@
     </div>
   </div>
 
+  <div class="abno-cfg-divider"></div>
+
+  <!-- SHAKEY TEXT -->
+  <div class="abno-cfg-section">
+    <div class="abno-cfg-header">Shakey Text</div>
+
+    <div class="abno-cfg-row">
+      <label>Enable Shakey Text</label>
+      <input type="checkbox" name="shakeyText" class="abno-cfg-checkbox" {{#if shakeyText}}checked{{/if}}>
+    </div>
+    <div class="abno-cfg-row">
+      <label>Shake Intensity (1–10)</label>
+      <input type="number" name="shakeIntensity" class="abno-cfg-input" value="{{shakeIntensity}}" min="1" max="10">
+    </div>
+    <div class="abno-cfg-hint">Text jitters after it finishes typing. Higher intensity = more violent shaking.</div>
+  </div>
+
   <!-- FOOTER -->
   <div class="abno-cfg-footer">
     <button type="submit" class="abno-cfg-btn-submit">Save Configuration</button>
