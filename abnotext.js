@@ -5,7 +5,28 @@ let sequenceIndex = 0;
 let activeRects = [];
 
 /* ---------------------------- */
-/* MESSAGE QUEUE                */
+/* DEFAULT CONFIG                */
+/* ---------------------------- */
+const DEFAULT_CONFIG = {
+  messages: ["Default text...", "Default second line of text.", "Third line of default text."],
+  duration: 2000,
+  fadeOutTime: 500,
+  frequency: 5,
+  fontSize: 25,
+  color: "#ff3333",
+  fontFamily: "serif",
+  typingSpeed: 75,
+  randomMode: false,
+  randomAngle: true,
+  maxAngle: 30,
+  autoScaleLongText: true,
+  maxSimultaneous: 3,
+  outlineEnabled: true,
+  outlineColor: "#000000",
+  outlineThickness: 2,
+  shakeyText: false,
+  shakeIntensity: 0
+};
 /* ---------------------------- */
 let messageQueue = [];
 let isProcessingQueue = false;
@@ -40,26 +61,7 @@ Hooks.once("init", () => {
     scope: "world",
     config: false,
     type: Object,
-    default: {
-      messages: ["Default text...", "Default second line of text.", "Third line of default text."],
-      duration: 2000,
-      fadeOutTime: 500,
-      frequency: 5,
-      fontSize: 25,
-      color: "#ff3333",
-      fontFamily: "serif",
-      typingSpeed: 75,
-      randomMode: false,
-      randomAngle: true,
-      maxAngle: 30,
-      autoScaleLongText: true,
-      maxSimultaneous: 3,
-      outlineEnabled: true,
-      outlineColor: "#000000",
-      outlineThickness: 2,
-      shakeyText: false,
-      shakeIntensity: 0
-    }
+    default: DEFAULT_CONFIG
   });
 
   game.settings.register("abno-text", "enabled", {
@@ -553,9 +555,14 @@ class AbnoLoadoutMenu extends FormApplication {
       event.preventDefault();
       console.log("ABNO: Restore default button clicked");
       
+      await game.settings.set("abno-text", "config", foundry.utils.duplicate(DEFAULT_CONFIG));
       await game.settings.set("abno-text", "activeLoadout", "default");
-      ui.notifications.info("Default configuration activated");
-      console.log("ABNO: Default loadout activated");
+      sequenceIndex = 0;
+      messageQueue = [];
+      isProcessingQueue = false;
+      startAutoMessages();
+      ui.notifications.info("Default configuration restored!");
+      console.log("ABNO: Default config restored");
       
       this.render();
     });
