@@ -1,5 +1,7 @@
 # Abno Text
 
+**Manifest URL:** `https://raw.githubusercontent.com/VaniFoundry/abno-text/main/module.json`
+
 **Designed with [Stars of the City](https://github.com/tsu-b-asa/sotc) in mind** - a Project Moon inspired TTRPG by Jakkafang & community.
 
 A Foundry VTT module that displays styled text on screen during play, mimicking the abnormality fight text, and maybe songs, from PM games.
@@ -49,6 +51,8 @@ The module adds a control group to the scene toolbar (GM only):
 1. Place the module folder in your Foundry `Data/modules` directory
 2. Enable the module in Foundry's module management screen
 3. Open the **Config** panel from the scene toolbar and change the default values as you wish; you can keep saving loadouts to use any time
+
+Or install directly via Foundry using the [manifest URL](https://raw.githubusercontent.com/VaniFoundry/abno-text/main/module.json).
 
 ## Compatibility
 
